@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<osm>
+	<select id="selectUsers" result="structs">
+		SELECT id,email FROM user where email=#{Email} order by id
+	</select>
+	<select id="selectUser" result="struct">
+		SELECT id,email FROM user where id=#{Id} order by id
+	</select>
+	<select id="selectUserMaps" result="maps">
+		SELECT id,email FROM user where email=#{Email} order by id
+	</select>
+	<select id="selectUserMap" result="map">
+		SELECT id,email FROM user where email=#{Email} order by id
+	</select>
+	<select id="selectUserArrays" result="arrays">
+		SELECT id,email FROM user where email=#{Email} order by id
+	</select>
+	<select id="selectUserArray" result="array">
+		SELECT id,email FROM user where email=#{Email} order by id
+	</select>
+	<select id="selectUserValue" result="value">
+		SELECT id,email FROM user where email=#{Email} order by id
+	</select>
+	<select id="selectUserKvs" result="kvs">
+		SELECT id,email FROM user where email=#{Email} order by id
+	</select>
+	<insert id="insertUser">
+INSERT INTO user
+(email,mobile,nickname,password,description,name,birth,province,city,company,address,sex,contact_info,create_time)
+VALUES
+(#{Email},#{Mobile},#{Nickname},#{Password},#{Description},#{Name},#{Birth},#{Province},#{City},#{Company},#{Address},#{Sex},#{ContactInfo},#{CreateTime});
+	</insert>
+	<update id="updateUser">
+UPDATE user SET
+email = #{Email},
+mobile = #{Mobile},
+nickname = #{Nickname},
+password = #{Password},
+description = #{Description},
+name = #{Name},
+birth = #{Birth},
+province = #{Province},
+city = #{City},
+company = #{Company},
+address = #{Address},
+sex = #{Sex},
+contact_info = #{ContactInfo},
+create_time = #{CreateTime} 
+where id = #{Id};
+	</update>	
+	<delete id="deleteUser">
+DELETE FROM user where id = #{Id};
+	</delete>
+</osm>
