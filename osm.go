@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
+	"github.com/yinshuwei/utils"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-var logger = log.New(os.Stdout, "[**osm**] ", 0)
+var logger *log.Logger = nil
 
 type dbRunner interface {
 	Prepare(query string) (*sql.Stmt, error)
@@ -35,6 +36,10 @@ type OsmTx struct {
 }
 
 func NewOsm(driverName, dataSource string, xmlPaths []string, params ...int) (osm *Osm, err error) {
+	if logger == nil {
+		logger = log.New(utils.LogOutput, "[**osm**] ", utils.LogFlag)
+	}
+
 	osm = new(Osm)
 	db, err := sql.Open(driverName, dataSource)
 
@@ -299,8 +304,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 
 		sm.sqlTemplate.Execute(&buf, param)
 		sqlOrg := buf.String()
-		logger.Println(sqlOrg)
-		logger.Println(param)
+		logger.Println("\n\tsql:\n", sqlOrg, "\n\tparams:\n", param, "\n")
 
 		sqlTemp := sqlOrg
 
