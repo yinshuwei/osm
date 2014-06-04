@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/yinshuwei/osm"
+	"github.com/test/osm"
 	"time"
 )
 
@@ -27,14 +27,14 @@ type User struct {
 
 func main() {
 
-	o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", []string{"test.xml"})
+	o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 
 	start := time.Now().Nanosecond() / 1000000
 
-	user := User{Email: "yinshuwei@foxmail.com", Id: 17}
+	user := User{Email: "test@foxmail.com", Id: 17}
 
 	/*************/
 	fmt.Println("structs")
@@ -71,7 +71,7 @@ func main() {
 	/***************/
 	fmt.Println("\narrays")
 	var userArrays [][]osm.Data
-	o.Query("selectUserArrays", "yinshuwei@foxmail.com")(&userArrays)
+	o.Query("selectUserArrays", "test@foxmail.com")(&userArrays)
 
 	for _, uArray := range userArrays {
 		if uArray != nil && len(uArray) >= 2 {
@@ -109,7 +109,7 @@ func main() {
 	fmt.Println("\ninsert")
 	insertUser := User{
 		// Id:         2,
-		Email:      "yinshuwei@foxmail.com",
+		Email:      "test@foxmail.com",
 		Mobile:     "13113113113",
 		Nickname:   "haha",
 		Birth:      time.Now(),
@@ -121,7 +121,7 @@ func main() {
 	fmt.Println("\nupdate")
 	updateUser := User{
 		Id:         4,
-		Email:      "yinshuwei@foxmail.com",
+		Email:      "test@foxmail.com",
 		Birth:      time.Now(),
 		CreateTime: time.Now(),
 	}
@@ -138,7 +138,7 @@ func main() {
 	// fmt.Println("\ninsert")
 	// txInsertUser := User{
 	// 	// Id:         2,
-	// 	Email:      "yinshuwei@foxmail.com",
+	// 	Email:      "test@foxmail.com",
 	// 	Mobile:     "13113113113",
 	// 	Nickname:   "haha",
 	// 	Birth:      time.Now(),
