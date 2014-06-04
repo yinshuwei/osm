@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/test/osm"
+	"github.com/yinshuwei/osm"
 	"time"
 )
 
