@@ -1,4 +1,4 @@
-// 是一个go的ORM工具，目前很简单，只能算是半成品，只支持mysql(因为我目前的项目是mysql,所以其他数据库没有测试过)。
+// osm(Object Sql Mapping)是用go编写的ORM工具，目前很简单，只能算是半成品，只支持mysql(因为我目前的项目是mysql,所以其他数据库没有测试过)。
 //
 // 以前是使用MyBatis开发java服务端，它的sql mapping很灵活，把sql独立出来，程序通过输入与输出来完成所有的数据库操作。
 //
@@ -42,15 +42,26 @@ type osmBase struct {
 	sqlMappersMap map[string]*sqlMapper
 }
 
+//osm对象，通过Struct、Map、Array、value等对象以及Sql Map来操作数据库。可以开启事务。
 type Osm struct {
 	osmBase
 }
 
+//与Osm对象一样，不过是在事务中进行操作
 type OsmTx struct {
 	osmBase
 }
 
-func NewOsm(driverName, dataSource string, xmlPaths []string, params ...int) (osm *Osm, err error) {
+//创建一个新的Osm，这个过程会打开数据库连接。
+//
+//driverName是数据库驱动名称如"mysql".
+//dataSource是数据库连接信息如"root:root@/51jczj?charset=utf8".
+//xmlPaths是sql xml的路径如[]string{"test.xml"}.
+//params是数据连接的参数，可以是0个1个或2个数字，第一个表示MaxIdleConns，第二个表示MaxOpenConns.
+//
+//如：
+//  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", []string{"test.xml"})
+func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *Osm, err error) {
 	if logger == nil {
 		logger = log.New(utils.LogOutput, "[**osm**] ", utils.LogFlag)
 	}
@@ -117,6 +128,10 @@ func NewOsm(driverName, dataSource string, xmlPaths []string, params ...int) (os
 	return
 }
 
+//打开事务
+//
+//如：
+//  tx, err := o.Begin()
 func (o *Osm) Begin() (tx *OsmTx, err error) {
 	tx = new(OsmTx)
 	tx.sqlMappersMap = o.sqlMappersMap
@@ -135,11 +150,34 @@ func (o *Osm) Begin() (tx *OsmTx, err error) {
 	return
 }
 
-func (tx *OsmTx) Commit() error {
-	if tx.db == nil {
+//与数据库断开连接，释放连接资源
+//
+//如：
+//  err := o.Close()
+func (o *Osm) Close() (err error) {
+	if o.db == nil {
+		err = fmt.Errorf("db no opened")
+	} else {
+		sqlDb, ok := o.db.(*sql.DB)
+		if ok {
+			err = sqlDb.Close()
+			o.db = nil
+		} else {
+			err = fmt.Errorf("db no opened")
+		}
+	}
+	return
+}
+
+//提交事务
+//
+//如：
+//  err := tx.Commit()
+func (o *OsmTx) Commit() error {
+	if o.db == nil {
 		return fmt.Errorf("tx no runing")
 	}
-	sqlTx, ok := tx.db.(*sql.Tx)
+	sqlTx, ok := o.db.(*sql.Tx)
 	if ok {
 		return sqlTx.Commit()
 	} else {
@@ -147,11 +185,15 @@ func (tx *OsmTx) Commit() error {
 	}
 }
 
-func (tx *OsmTx) Rollback() error {
-	if tx.db == nil {
+//事务回滚
+//
+//如：
+//  err := tx.Rollback()
+func (o *OsmTx) Rollback() error {
+	if o.db == nil {
 		return fmt.Errorf("tx no runing")
 	}
-	sqlTx, ok := tx.db.(*sql.Tx)
+	sqlTx, ok := o.db.(*sql.Tx)
 	if ok {
 		return sqlTx.Rollback()
 	} else {
@@ -159,6 +201,18 @@ func (tx *OsmTx) Rollback() error {
 	}
 }
 
+//执行删除sql
+//
+//xml
+//  <osm>
+//  ...
+//    <delete id="deleteUser">DELETE FROM user where id = #{Id};</delete>
+//  ...
+//  </osm>
+//代码
+//  user := User{Id: 3}
+//  count,err := o.Delete("deleteUser", user)
+//删除id为3的用户数据
 func (o *osmBase) Delete(id string, params ...interface{}) (int64, error) {
 	sql, sqlParams, _, err := o.readSqlParams(id, type_delete, params...)
 	if err != nil {
@@ -176,6 +230,18 @@ func (o *osmBase) Delete(id string, params ...interface{}) (int64, error) {
 	return result.RowsAffected()
 }
 
+//执行更新sql
+//
+//xml
+//  <osm>
+//  ...
+//    <update id="updateUserEmail">UPDATE user SET email=#{Email} where id = #{Id};</update>
+//  ...
+//  </osm>
+//代码
+//  user := User{Id: 3, Email: "test@foxmail.com"}
+//  count,err := o.Update("updateUserEmail", user)
+//将id为3的用户email更新为"test@foxmail.com"
 func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
 	sql, sqlParams, _, err := o.readSqlParams(id, type_update, params...)
 	if err != nil {
@@ -193,6 +259,18 @@ func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
 	return result.RowsAffected()
 }
 
+//执行添加sql
+//
+//xml
+//  <osm>
+//  ...
+//    <insert id="insertUser">INSERT INTO user(email) VALUES(#{Email});</insert>
+//  ...
+//  </osm>
+//代码
+//  user := User{Email: "test@foxmail.com"}
+//  insertId,count,err := o.Insert("insertUser", user)
+//添加一个用户数据，email为"test@foxmail.com"
 func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error) {
 	sql, sqlParams, _, err := o.readSqlParams(id, type_insert, params...)
 	if err != nil {
@@ -216,6 +294,26 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 	return insertId, count, err
 }
 
+//执行查询sql
+//
+//查询结果分为8种，分别是:
+//	"value"   : 查出的结果为单行,并存入不定长的变量上(...)
+//	"struct"  : 查出的结果为单行,并存入struct
+//	"structs" : 查出的结果为多行,并存入struct array
+//	"map"     : 查出的结果为单行,并存入map
+//	"maps"    : 查出的结果为多行,并存入map array
+//	"array"   : 查出的结果为单行,并存入array
+//	"arrays"  : 查出的结果为多行,并存入array array
+//	"kvs"     : 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map
+//xml
+//  <select id="searchArchives" result="struct">
+//   <![CDATA[
+//   SELECT id,email,create_time FROM user WHERE id=#{Id};
+//   ]]>
+//  </select>
+//result上面8种的一种,查询结果会将列名转换为属性名，如"create_time"列,在结果中存放在CreateTime属性中
+//
+//上面的结果为User{Id: "1", Email: "test@foxmail.com", CreateTime: "2014-06-01 12:32:40"}
 func (o *osmBase) Query(id string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	sql, sqlParams, resultType, err := o.readSqlParams(id, type_select, params...)
 

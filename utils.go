@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -13,105 +12,105 @@ const (
 	format_DateTime = "2006-01-02 15:04:05"
 )
 
-type StrTo string
+type strTo string
 
 // set string
-func (f *StrTo) Set(v string) {
+func (f *strTo) Set(v string) {
 	if v != "" {
-		*f = StrTo(v)
+		*f = strTo(v)
 	} else {
 		f.Clear()
 	}
 }
 
 // clean string
-func (f *StrTo) Clear() {
-	*f = StrTo(0x1E)
+func (f *strTo) Clear() {
+	*f = strTo(0x1E)
 }
 
 // check string exist
-func (f StrTo) Exist() bool {
+func (f strTo) Exist() bool {
 	return string(f) != string(0x1E)
 }
 
 // string to bool
-func (f StrTo) Bool() (bool, error) {
+func (f strTo) Bool() (bool, error) {
 	return strconv.ParseBool(f.String())
 }
 
 // string to float32
-func (f StrTo) Float32() (float32, error) {
+func (f strTo) Float32() (float32, error) {
 	v, err := strconv.ParseFloat(f.String(), 32)
 	return float32(v), err
 }
 
 // string to float64
-func (f StrTo) Float64() (float64, error) {
+func (f strTo) Float64() (float64, error) {
 	return strconv.ParseFloat(f.String(), 64)
 }
 
 // string to int
-func (f StrTo) Int() (int, error) {
+func (f strTo) Int() (int, error) {
 	v, err := strconv.ParseInt(f.String(), 10, 32)
 	return int(v), err
 }
 
 // string to int8
-func (f StrTo) Int8() (int8, error) {
+func (f strTo) Int8() (int8, error) {
 	v, err := strconv.ParseInt(f.String(), 10, 8)
 	return int8(v), err
 }
 
 // string to int16
-func (f StrTo) Int16() (int16, error) {
+func (f strTo) Int16() (int16, error) {
 	v, err := strconv.ParseInt(f.String(), 10, 16)
 	return int16(v), err
 }
 
 // string to int32
-func (f StrTo) Int32() (int32, error) {
+func (f strTo) Int32() (int32, error) {
 	v, err := strconv.ParseInt(f.String(), 10, 32)
 	return int32(v), err
 }
 
 // string to int64
-func (f StrTo) Int64() (int64, error) {
+func (f strTo) Int64() (int64, error) {
 	v, err := strconv.ParseInt(f.String(), 10, 64)
 	return int64(v), err
 }
 
 // string to uint
-func (f StrTo) Uint() (uint, error) {
+func (f strTo) Uint() (uint, error) {
 	v, err := strconv.ParseUint(f.String(), 10, 32)
 	return uint(v), err
 }
 
 // string to uint8
-func (f StrTo) Uint8() (uint8, error) {
+func (f strTo) Uint8() (uint8, error) {
 	v, err := strconv.ParseUint(f.String(), 10, 8)
 	return uint8(v), err
 }
 
 // string to uint16
-func (f StrTo) Uint16() (uint16, error) {
+func (f strTo) Uint16() (uint16, error) {
 	v, err := strconv.ParseUint(f.String(), 10, 16)
 	return uint16(v), err
 }
 
 // string to uint31
-func (f StrTo) Uint32() (uint32, error) {
+func (f strTo) Uint32() (uint32, error) {
 	v, err := strconv.ParseUint(f.String(), 10, 32)
 	return uint32(v), err
 }
 
 // string to uint64
-func (f StrTo) Uint64() (uint64, error) {
+func (f strTo) Uint64() (uint64, error) {
 	v, err := strconv.ParseUint(f.String(), 10, 64)
 	return uint64(v), err
 }
 
 // string to string
-func (f StrTo) String() string {
+func (f strTo) String() string {
 	if f.Exist() {
 		return string(f)
 	}
@@ -119,7 +118,7 @@ func (f StrTo) String() string {
 }
 
 // interface to string
-func ToStr(value interface{}, args ...int) (s string) {
+func toStr(value interface{}, args ...int) (s string) {
 	switch v := value.(type) {
 	case bool:
 		s = strconv.FormatBool(v)
@@ -157,74 +156,17 @@ func ToStr(value interface{}, args ...int) (s string) {
 	return s
 }
 
-// interface to int64
-func ToInt64(value interface{}) (d int64) {
-	val := reflect.ValueOf(value)
-	switch value.(type) {
-	case int, int8, int16, int32, int64:
-		d = val.Int()
-	case uint, uint8, uint16, uint32, uint64:
-		d = int64(val.Uint())
-	default:
-		panic(fmt.Errorf("ToInt64 need numeric not `%T`", value))
-	}
-	return
-}
+// type argString []string
 
-// snake string, XxYy to xx_yy
-// func snakeString(s string) string {
-// 	data := make([]byte, 0, len(s)*2)
-// 	j := false
-// 	num := len(s)
-// 	for i := 0; i < num; i++ {
-// 		d := s[i]
-// 		if i > 0 && d >= 'A' && d <= 'Z' && j {
-// 			data = append(data, '_')
-// 		}
-// 		if d != '_' {
-// 			j = true
-// 		}
-// 		data = append(data, d)
+// // get string by index from string slice
+// func (a argString) Get(i int, args ...string) (r string) {
+// 	if i >= 0 && i < len(a) {
+// 		r = a[i]
+// 	} else if len(args) > 0 {
+// 		r = args[0]
 // 	}
-// 	return strings.ToLower(string(data[:len(data)]))
+// 	return
 // }
-
-// camel string, xx_yy to XxYy
-func camelString(s string) string {
-	data := make([]byte, 0, len(s))
-	j := false
-	k := false
-	num := len(s) - 1
-	for i := 0; i <= num; i++ {
-		d := s[i]
-		if k == false && d >= 'A' && d <= 'Z' {
-			k = true
-		}
-		if d >= 'a' && d <= 'z' && (j || k == false) {
-			d = d - 32
-			j = false
-			k = true
-		}
-		if k && d == '_' && num > i && s[i+1] >= 'a' && s[i+1] <= 'z' {
-			j = true
-			continue
-		}
-		data = append(data, d)
-	}
-	return string(data[:len(data)])
-}
-
-type argString []string
-
-// get string by index from string slice
-func (a argString) Get(i int, args ...string) (r string) {
-	if i >= 0 && i < len(a) {
-		r = a[i]
-	} else if len(args) > 0 {
-		r = args[0]
-	}
-	return
-}
 
 type argInt []int
 
@@ -239,40 +181,40 @@ func (a argInt) Get(i int, args ...int) (r int) {
 	return
 }
 
-type argAny []interface{}
+// type argAny []interface{}
 
-// get interface by index from interface slice
-func (a argAny) Get(i int, args ...interface{}) (r interface{}) {
-	if i >= 0 && i < len(a) {
-		r = a[i]
-	}
-	if len(args) > 0 {
-		r = args[0]
-	}
-	return
-}
+// // get interface by index from interface slice
+// func (a argAny) Get(i int, args ...interface{}) (r interface{}) {
+// 	if i >= 0 && i < len(a) {
+// 		r = a[i]
+// 	}
+// 	if len(args) > 0 {
+// 		r = args[0]
+// 	}
+// 	return
+// }
 
-// parse time to string with location
-func timeParse(dateString, format string) (time.Time, error) {
-	tp, err := time.Parse(format, dateString)
-	return tp, err
-}
+// // parse time to string with location
+// func timeParse(dateString, format string) (time.Time, error) {
+// 	tp, err := time.Parse(format, dateString)
+// 	return tp, err
+// }
 
 // format time string
 func timeFormat(t time.Time, format string) string {
 	return t.Format(format)
 }
 
-// get pointer indirect type
-func indirectType(v reflect.Type) reflect.Type {
-	switch v.Kind() {
-	case reflect.Ptr:
-		return indirectType(v.Elem())
-	default:
-		return v
-	}
-	return v
-}
+// // get pointer indirect type
+// func indirectType(v reflect.Type) reflect.Type {
+// 	switch v.Kind() {
+// 	case reflect.Ptr:
+// 		return indirectType(v.Elem())
+// 	default:
+// 		return v
+// 	}
+// 	return v
+// }
 
 // set data to reflect.Value
 func setDataToValue(value reflect.Value, data interface{}) {
@@ -283,7 +225,7 @@ func setDataToValue(value reflect.Value, data interface{}) {
 		} else if v, ok := data.(bool); ok {
 			value.SetBool(v)
 		} else {
-			v, _ := StrTo(ToStr(data)).Bool()
+			v, _ := strTo(toStr(data)).Bool()
 			value.SetBool(v)
 		}
 
@@ -291,7 +233,7 @@ func setDataToValue(value reflect.Value, data interface{}) {
 		if data == nil {
 			value.SetString("")
 		} else {
-			value.SetString(ToStr(data))
+			value.SetString(toStr(data))
 		}
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -305,7 +247,7 @@ func setDataToValue(value reflect.Value, data interface{}) {
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				value.SetInt(int64(val.Uint()))
 			default:
-				v, _ := StrTo(ToStr(data)).Int64()
+				v, _ := strTo(toStr(data)).Int64()
 				value.SetInt(v)
 			}
 		}
@@ -320,7 +262,7 @@ func setDataToValue(value reflect.Value, data interface{}) {
 			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 				value.SetUint(val.Uint())
 			default:
-				v, _ := StrTo(ToStr(data)).Uint64()
+				v, _ := strTo(toStr(data)).Uint64()
 				value.SetUint(v)
 			}
 		}
@@ -333,7 +275,7 @@ func setDataToValue(value reflect.Value, data interface{}) {
 			case reflect.Float64:
 				value.SetFloat(val.Float())
 			default:
-				v, _ := StrTo(ToStr(data)).Float64()
+				v, _ := strTo(toStr(data)).Float64()
 				value.SetFloat(v)
 			}
 		}
@@ -371,12 +313,37 @@ func setDataToValue(value reflect.Value, data interface{}) {
 	}
 }
 
-func toGoName(name string) string {
-	names := strings.Split(name, "_")
-
-	newName := ""
-	for _, ntemp := range names {
-		newName += strings.ToUpper(ntemp[0:1]) + strings.ToLower(ntemp[1:len(ntemp)])
+// // camel string, xx_yy to XxYy
+func toGoName(s string) string {
+	data := make([]byte, 0, len(s))
+	j := false
+	k := false
+	num := len(s) - 1
+	for i := 0; i <= num; i++ {
+		d := s[i]
+		if k == false && d >= 'A' && d <= 'Z' {
+			k = true
+		}
+		if d >= 'a' && d <= 'z' && (j || k == false) {
+			d = d - 32
+			j = false
+			k = true
+		}
+		if k && d == '_' && num > i && s[i+1] >= 'a' && s[i+1] <= 'z' {
+			j = true
+			continue
+		}
+		data = append(data, d)
 	}
-	return newName
+	return string(data[:len(data)])
 }
+
+// func toGoName(name string) string {
+// 	names := strings.Split(name, "_")
+
+// 	newName := ""
+// 	for _, ntemp := range names {
+// 		newName += strings.ToUpper(ntemp[0:1]) + strings.ToLower(ntemp[1:len(ntemp)])
+// 	}
+// 	return newName
+// }

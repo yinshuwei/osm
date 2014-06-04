@@ -1,9 +1,19 @@
 package osm
 
+//Data组合了interface{},从sql中查询到的数据都可以放入在Data对象中,可以通过它的转换方法来还原数据
+//
+//如
+//  var userMaps []map[string]osm.Data
+//  o.Query("selectUserMaps", user)(&userMaps)
+//  for _, uMap := range userMaps {
+//    fmt.Println(uMap["Id"].Int64(), uMap["Email"].String())
+//  }
+//以上是用maps类型进行数据查询的例子,当然这里可以用[]map[string]inferface{}类型做为结果,只是Data类型多了一些转换方法而已
 type Data struct {
 	d interface{}
 }
 
+// osmData to string
 func (data Data) String() string {
 	bsv, ok := data.d.([]byte)
 	if ok {
