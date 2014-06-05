@@ -26,93 +26,98 @@ osm就是对MyBatis的简单模仿。当然动态sql的生成是使用go和templ
 
 http://godoc.org/github.com/yinshuwei/osm
 
-##实例
+##Quickstart
+
 创建数据库
 	
 	create database test;
 	use test;
+
 创建user表
 	
 	CREATE TABLE `user` (
 	  `id` int(11) NOT NULL AUTO_INCREMENT,
 	  `email` varchar(255) DEFAULT NULL,
-	  `mobile` varchar(45) DEFAULT NULL,
 	  `nickname` varchar(45) DEFAULT NULL,
-	  `password` varchar(255) DEFAULT NULL,
-	  `description` varchar(255) DEFAULT NULL COMMENT '自我描述',
-	  `name` varchar(45) DEFAULT NULL,
-	  `birth` date DEFAULT NULL,
-	  `province` varchar(45) DEFAULT NULL COMMENT '省',
-	  `city` varchar(45) DEFAULT NULL COMMENT '市',
-	  `company` varchar(45) DEFAULT NULL COMMENT '公司',
-	  `address` varchar(45) DEFAULT NULL COMMENT '地址',
-	  `sex` varchar(45) DEFAULT NULL COMMENT '性别',
-	  `contact_info` varchar(1000) DEFAULT NULL COMMENT '联系方式',
 	  `create_time` varchar(255) DEFAULT NULL,
 	  PRIMARY KEY (`id`)
-	) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COMMENT='用户表';
+	) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='user table';
 
-sql xml文件text.xml
+sql template文件test.xml
 
 	<?xml version="1.0" encoding="utf-8"?>
 	<osm>
-		<insert id="insertUser">
-	INSERT INTO user
-	(email,mobile,nickname,password,description,name,birth,province,city,company,address,sex,contact_info,create_time)
-	VALUES
-	(#{Email},#{Mobile},#{Nickname},#{Password},#{Description},#{Name},#{Birth},#{Province},#{City},#{Company},#{Address},#{Sex},#{ContactInfo},#{CreateTime});
-		</insert>
-
+	    <insert id="insertUser">
+	    <![CDATA[
+	INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});
+	    ]]>
+	    </insert>
+	
+	    <select id="selectUser" result="structs">
+	    <![CDATA[
+	SELECT id,email,nickname,create_time FROM user 
+	WHERE 
+	{{if ne .Email ""}}email=#{Email} and{{end}}
+	{{if ne .Nickname ""}}nickname=#{Nickname} and{{end}}
+	1=1;
+	    ]]>
+	    </select>
+	
+	    <delete id="deleteUser">
+	    <![CDATA[
+	DELETE FROM user WHERE email=#{Email}
+	    ]]>
+	    </delete>
 	</osm>
 
 example.go
-
+	
 	package main
-
+	
 	import (
 		"fmt"
 		_ "github.com/go-sql-driver/mysql"
 		"github.com/yinshuwei/osm"
 		"time"
 	)
-
+	
 	type User struct {
-		Id          int64
-		Email       string
-		Mobile      string
-		Nickname    string
-		Password    string
-		Description string
-		Name        string
-		Birth       time.Time
-		Province    string
-		City        string
-		Company     string
-		Address     string
-		Sex         string
-		ContactInfo string
-		CreateTime  time.Time
+		Id         int64
+		Email      string
+		Nickname   string
+		CreateTime time.Time
 	}
-
+	
 	func main() {
-
 		o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-
+	
+		//添加
 		user := User{
-			// Id:         2,
 			Email:      "test@foxmail.com",
-			Mobile:     "13113113113",
 			Nickname:   "haha",
-			Birth:      time.Now(),
 			CreateTime: time.Now(),
 		}
 		fmt.Println(o.Insert("insertUser", user))
-		
+	
+		//动态查询
+		user = User{
+			Email: "test@foxmail.com",
+		}
+		var results []User
+		o.Query("selectUser", user)(&results)
+		for _, u := range results {
+			fmt.Println(u)
+		}
+	
+		//删除
+		fmt.Println(o.Delete("deleteUser", user))
+	
 		err = o.Close()
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 	}
+
