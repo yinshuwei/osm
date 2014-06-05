@@ -24,7 +24,7 @@ osm就是对MyBatis的简单模仿。当然动态sql的生成是使用go和templ
 
 ##api doc
 
-	http://godoc.org/github.com/yinshuwei/osm
+http://godoc.org/github.com/yinshuwei/osm
 
 ##实例
 创建数据库
