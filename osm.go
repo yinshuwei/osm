@@ -30,6 +30,9 @@ import (
 
 var logger *log.Logger = nil
 
+//显示执行的sql，用于调试，使用logger打印
+var ShowSql = false
+
 type dbRunner interface {
 	Prepare(query string) (*sql.Stmt, error)
 	Exec(query string, args ...interface{}) (sql.Result, error)
@@ -63,7 +66,7 @@ type OsmTx struct {
 //  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", []string{"test.xml"})
 func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *Osm, err error) {
 	if logger == nil {
-		logger = log.New(utils.LogOutput, "[**osm**] ", utils.LogFlag)
+		logger = log.New(utils.LogOutput, "[ osm ] ", utils.LogFlag)
 	}
 
 	osm = new(Osm)
@@ -417,7 +420,10 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 
 		sm.sqlTemplate.Execute(&buf, param)
 		sqlOrg := buf.String()
-		logger.Println("\n\tsql:\n", sqlOrg, "\n\tparams:\n", param, "\n")
+
+		if ShowSql {
+			logger.Println("\nsql:\t", sqlOrg, "\nparams:\t", param, "\n")
+		}
 
 		sqlTemp := sqlOrg
 
