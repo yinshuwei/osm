@@ -19,7 +19,12 @@ osm就是对MyBatis的简单模仿。当然动态sql的生成是使用go和templ
 
 
 ##osm获取
+
 	go get github.com/yinshuwei/osm
+
+##api doc
+
+	http://godoc.org/github.com/yinshuwei/osm
 
 ##实例
 创建数据库
