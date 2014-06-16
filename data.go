@@ -4,7 +4,7 @@ package osm
 //
 //如
 //  var userMaps []map[string]osm.Data
-//  o.Query("selectUserMaps", user)(&userMaps)
+//  o.Select("selectUserMaps", user)(&userMaps)
 //  for _, uMap := range userMaps {
 //    fmt.Println(uMap["Id"].Int64(), uMap["Email"].String())
 //  }

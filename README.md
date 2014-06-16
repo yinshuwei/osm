@@ -107,7 +107,7 @@ example.go
 			Email: "test@foxmail.com",
 		}
 		var results []User
-		o.Query("selectUser", user)(&results)
+		o.Select("selectUser", user)(&results)
 		for _, u := range results {
 			fmt.Println(u)
 		}

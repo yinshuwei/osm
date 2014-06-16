@@ -9,12 +9,12 @@ func resultKvs(o *osmBase, sql string, sqlParams []interface{}, container interf
 
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
-		return 0, fmt.Errorf("query kvs all args must be use ptr")
+		return 0, fmt.Errorf("Select kvs all args must be use ptr")
 	}
 
 	value := reflect.Indirect(pointValue)
 	if value.Kind() != reflect.Map {
-		return 0, fmt.Errorf("query kvs args must be use map")
+		return 0, fmt.Errorf("Select kvs args must be use map")
 	}
 
 	cType := value.Type()

@@ -9,7 +9,7 @@ func resultMaps(o *osmBase, sql string, sqlParams []interface{}, container inter
 
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
-		panic(fmt.Errorf("Query()() all args must be use ptr"))
+		panic(fmt.Errorf("Select()() all args must be use ptr"))
 	}
 
 	value := reflect.Indirect(pointValue)

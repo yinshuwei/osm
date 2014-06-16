@@ -8,7 +8,7 @@ import (
 func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
-		return 0, fmt.Errorf("Query()() all args must be use ptr")
+		return 0, fmt.Errorf("Select()() all args must be use ptr")
 	}
 
 	value := reflect.Indirect(pointValue)

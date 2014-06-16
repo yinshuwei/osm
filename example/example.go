@@ -39,7 +39,7 @@ func main() {
 	/*************/
 	fmt.Println("structs")
 	var users []User
-	o.Query("selectUsers", user)(&users)
+	o.Select("selectUsers", user)(&users)
 
 	for _, u := range users {
 		fmt.Println(u.Id, u.Email)
@@ -48,14 +48,14 @@ func main() {
 	/*************/
 	fmt.Println("\nstruct")
 	u := User{}
-	o.Query("selectUser", user)(&u)
+	o.Select("selectUser", user)(&u)
 
 	fmt.Println(u.Id, u.Email)
 
 	/***************/
 	fmt.Println("\nmaps")
 	var userMaps []map[string]osm.Data
-	o.Query("selectUserMaps", user)(&userMaps)
+	o.Select("selectUserMaps", user)(&userMaps)
 
 	for _, uMap := range userMaps {
 		fmt.Println(uMap["Id"].Int64(), uMap["Email"].String())
@@ -64,14 +64,14 @@ func main() {
 	/***************/
 	fmt.Println("\nmap")
 	var userMap map[string]osm.Data
-	o.Query("selectUserMap", user)(&userMap)
+	o.Select("selectUserMap", user)(&userMap)
 
 	fmt.Println(userMap["Id"].Int64(), userMap["Email"].String())
 
 	/***************/
 	fmt.Println("\narrays")
 	var userArrays [][]osm.Data
-	o.Query("selectUserArrays", "test@foxmail.com")(&userArrays)
+	o.Select("selectUserArrays", "test@foxmail.com")(&userArrays)
 
 	for _, uArray := range userArrays {
 		if uArray != nil && len(uArray) >= 2 {
@@ -82,7 +82,7 @@ func main() {
 	/***************/
 	fmt.Println("\narray")
 	var userArray []osm.Data
-	o.Query("selectUserArray", user)(&userArray)
+	o.Select("selectUserArray", user)(&userArray)
 
 	if userArray != nil && len(userArray) >= 2 {
 		fmt.Println(userArray[0].Int64(), userArray[1].String())
@@ -92,14 +92,14 @@ func main() {
 	fmt.Println("\nvalue")
 	var id int64
 	var email string
-	o.Query("selectUserValue", user)(&id, &email)
+	o.Select("selectUserValue", user)(&id, &email)
 
 	fmt.Println(id, email)
 
 	/***************/
 	fmt.Println("\nkvs")
 	var idEmailMap map[int64]string
-	o.Query("selectUserKvs", user)(&idEmailMap)
+	o.Select("selectUserKvs", user)(&idEmailMap)
 
 	for k, v := range idEmailMap {
 		fmt.Println(k, v)

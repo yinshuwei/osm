@@ -317,7 +317,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 //result上面8种的一种,查询结果会将列名转换为属性名，如"create_time"列,在结果中存放在CreateTime属性中
 //
 //上面的结果为User{Id: "1", Email: "test@foxmail.com", CreateTime: "2014-06-01 12:32:40"}
-func (o *osmBase) Query(id string, params ...interface{}) func(containers ...interface{}) (int64, error) {
+func (o *osmBase) Select(id string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	sql, sqlParams, resultType, err := o.readSqlParams(id, type_select, params...)
 
 	if err != nil {
@@ -392,13 +392,13 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 	err = nil
 
 	if !ok {
-		err = fmt.Errorf("Query \"%s\" error ,id not fond ", id)
+		err = fmt.Errorf("Select \"%s\" error ,id not fond ", id)
 		return
 	}
 	resultType = sm.result
 
 	if sm.sqlType != sqlType {
-		err = fmt.Errorf("Query type Error")
+		err = fmt.Errorf("Select type Error")
 		return
 	}
 
