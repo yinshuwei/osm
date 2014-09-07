@@ -76,7 +76,14 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 		if db != nil {
 			db.Close()
 		}
-		err = fmt.Errorf("create osm %s", err.Error())
+		err = fmt.Errorf("create osm error : %s", err.Error())
+		return
+	}
+
+	err = db.Ping()
+	if err != nil {
+		db.Close()
+		err = fmt.Errorf("create osm error : %s", err.Error())
 		return
 	}
 
