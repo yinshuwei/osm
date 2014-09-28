@@ -125,3 +125,8 @@ func (data Data) Uint64() uint64 {
 	}
 	return data.d.(uint64)
 }
+
+// osmData to interface{}
+func (data Data) Data() interface{} {
+	return data.d
+}

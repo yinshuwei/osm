@@ -329,7 +329,7 @@ func toGoName(s string) string {
 			j = false
 			k = true
 		}
-		if k && d == '_' && num > i && s[i+1] >= 'a' && s[i+1] <= 'z' {
+		if k && d == '_' && num > i /**&& s[i+1] >= 'a' && s[i+1] <= 'z'**/ {
 			j = true
 			continue
 		}
