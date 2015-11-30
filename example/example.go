@@ -1,13 +1,15 @@
 package main
 
 import (
-	"fmt"
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	//_ "github.com/go-sql-driver/mysql"
 	"github.com/yinshuwei/osm"
+	"github.com/yinshuwei/utils"
+	"log"
 	"time"
 )
 
-type User struct {
+type ResUser struct {
 	Id          int64
 	Email       string
 	Mobile      string
@@ -26,132 +28,137 @@ type User struct {
 }
 
 func main() {
+	osm.ShowSql = true
+	utils.SetLogFlags(log.Ldate | log.Lshortfile)
 
-	o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
+	o, err := osm.New("postgres", "host=db01 user=golang password=123456 dbname=golang sslmode=disable", []string{"test.xml"})
+	//o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
+		return
 	}
 
 	start := time.Now().Nanosecond() / 1000000
 
-	user := User{Email: "test@foxmail.com", Id: 17}
+	user := ResUser{Email: "test@foxmail.com", Id: 17}
 
 	/*************/
-	fmt.Println("structs")
-	var users []User
-	o.Select("selectUsers", user)(&users)
-
+	log.Println("structs")
+	var users []ResUser
+	_, err = o.Select("selectResUsers", user)(&users)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	for _, u := range users {
-		fmt.Println(u.Id, u.Email)
+		log.Println(u.Id, u.Email)
 	}
 
 	/*************/
-	fmt.Println("\nstruct")
-	u := User{}
-	o.Select("selectUser", user)(&u)
+	log.Println("struct")
+	u := ResUser{}
+	o.Select("selectResUser", user)(&u)
 
-	fmt.Println(u.Id, u.Email)
+	log.Println(u.Id, u.Email)
 
 	/***************/
-	fmt.Println("\nmaps")
+	log.Println("maps")
 	var userMaps []map[string]osm.Data
-	o.Select("selectUserMaps", user)(&userMaps)
+	o.Select("selectResUserMaps", user)(&userMaps)
 
 	for _, uMap := range userMaps {
-		fmt.Println(uMap["Id"].Int64(), uMap["Email"].String())
+		log.Println(uMap["Id"].Int64(), uMap["Email"].String())
 	}
 
 	/***************/
-	fmt.Println("\nmap")
+	log.Println("map")
 	var userMap map[string]osm.Data
-	o.Select("selectUserMap", user)(&userMap)
+	o.Select("selectResUserMap", user)(&userMap)
 
-	fmt.Println(userMap["Id"].Int64(), userMap["Email"].String())
+	log.Println(userMap["Id"].Int64(), userMap["Email"].String())
 
 	/***************/
-	fmt.Println("\narrays")
+	log.Println("arrays")
 	var userArrays [][]osm.Data
-	o.Select("selectUserArrays", "test@foxmail.com")(&userArrays)
+	o.Select("selectResUserArrays", "test@foxmail.com")(&userArrays)
 
 	for _, uArray := range userArrays {
 		if uArray != nil && len(uArray) >= 2 {
-			fmt.Println(uArray[0].Int64(), uArray[1].String())
+			log.Println(uArray[0].Int64(), uArray[1].String())
 		}
 	}
 
 	/***************/
-	fmt.Println("\narray")
+	log.Println("array")
 	var userArray []osm.Data
-	o.Select("selectUserArray", user)(&userArray)
+	o.Select("selectResUserArray", user)(&userArray)
 
 	if userArray != nil && len(userArray) >= 2 {
-		fmt.Println(userArray[0].Int64(), userArray[1].String())
+		log.Println(userArray[0].Int64(), userArray[1].String())
 	}
 
 	/***************/
-	fmt.Println("\nvalue")
+	log.Println("value")
 	var id int64
 	var email string
-	o.Select("selectUserValue", user)(&id, &email)
+	o.Select("selectResUserValue", user)(&id, &email)
 
-	fmt.Println(id, email)
+	log.Println(id, email)
 
 	/***************/
-	fmt.Println("\nkvs")
+	log.Println("kvs")
 	var idEmailMap map[int64]string
-	o.Select("selectUserKvs", user)(&idEmailMap)
+	o.Select("selectResUserKvs", user)(&idEmailMap)
 
 	for k, v := range idEmailMap {
-		fmt.Println(k, v)
+		log.Println(k, v)
 	}
 
 	/*****************/
-	fmt.Println("\ninsert")
-	insertUser := User{
-		// Id:         2,
+	log.Println("insert")
+	insertResUser := ResUser{
 		Email:      "test@foxmail.com",
 		Mobile:     "13113113113",
 		Nickname:   "haha",
 		Birth:      time.Now(),
 		CreateTime: time.Now(),
 	}
-	fmt.Println(o.Insert("insertUser", insertUser))
+	log.Println(o.Insert("insertResUser", insertResUser))
 
 	/*****************/
-	fmt.Println("\nupdate")
-	updateUser := User{
+	log.Println("update")
+	updateResUser := ResUser{
 		Id:         4,
 		Email:      "test@foxmail.com",
 		Birth:      time.Now(),
 		CreateTime: time.Now(),
 	}
-	fmt.Println(o.Update("updateUser", updateUser))
+	log.Println(o.Update("updateResUser", updateResUser))
 
 	/*****************/
-	fmt.Println("\ndelete")
-	deleteUser := User{Id: 3}
-	fmt.Println(o.Delete("deleteUser", deleteUser))
+	log.Println("delete")
+	deleteResUser := ResUser{Id: 3}
+	log.Println(o.Delete("deleteResUser", deleteResUser))
 
 	// tx, err := o.Begin()
 
 	// /*****************/
-	// fmt.Println("\ninsert")
-	// txInsertUser := User{
-	// 	// Id:         2,
+	// log.Println("insert")
+	// txInsertResUser := ResUser{
 	// 	Email:      "test@foxmail.com",
 	// 	Mobile:     "13113113113",
 	// 	Nickname:   "haha",
 	// 	Birth:      time.Now(),
 	// 	CreateTime: time.Now(),
 	// }
-	// fmt.Println(tx.Insert("insertUser", txInsertUser))
+	// log.Println(tx.Insert("insertResUser", txInsertResUser))
 
 	// tx.Commit()
 
-	fmt.Println(time.Now().Nanosecond()/1000000-start, "ms")
+	log.Println(time.Now().Nanosecond()/1000000-start, "ms")
 
 	err = o.Close()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Println(err.Error())
 	}
 }

@@ -28,6 +28,11 @@ import (
 	"time"
 )
 
+const (
+	DBTYPE_MYSQL    = 0
+	DBTYPE_POSTGRES = 1
+)
+
 var logger *log.Logger = nil
 
 //显示执行的sql，用于调试，使用logger打印
@@ -43,6 +48,7 @@ type dbRunner interface {
 type osmBase struct {
 	db            dbRunner
 	sqlMappersMap map[string]*sqlMapper
+	dbType        int
 }
 
 //osm对象，通过Struct、Map、Array、value等对象以及Sql Map来操作数据库。可以开启事务。
@@ -66,7 +72,7 @@ type OsmTx struct {
 //  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", []string{"test.xml"})
 func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *Osm, err error) {
 	if logger == nil {
-		logger = log.New(utils.LogOutput, "[ osm ] ", utils.LogFlag)
+		logger = log.New(utils.LogOutput, "[osm] ", utils.LogFlag)
 	}
 
 	osm = new(Osm)
@@ -87,6 +93,12 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 		return
 	}
 
+	switch driverName {
+	case "postgres":
+		osm.dbType = DBTYPE_POSTGRES
+	default:
+		osm.dbType = DBTYPE_MYSQL
+	}
 	osm.db = db
 	osm.sqlMappersMap = make(map[string]*sqlMapper)
 
@@ -429,13 +441,12 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 		sqlOrg := buf.String()
 
 		if ShowSql {
-			logger.Println("\nsql:\t", sqlOrg, "\nparams:\t", param, "\n")
+			logger.Printf(`sql:"%s", params:"%+v"`, sqlOrg, param)
 		}
 
 		sqlTemp := sqlOrg
-
 		errorIndex := 0
-
+		signIndex := 1
 		for strings.Contains(sqlTemp, "#{") || strings.Contains(sqlTemp, "}") {
 			si := strings.Index(sqlTemp, "#{")
 			ei := strings.Index(sqlTemp, "}")
@@ -445,7 +456,12 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 				startFlag++
 				errorIndex += si + 2
 			} else if (ei != -1 && si != -1 && ei < si) || (ei != -1 && si == -1) {
-				sqls = append(sqls, "?")
+				if o.dbType == DBTYPE_POSTGRES {
+					sqls = append(sqls, fmt.Sprintf("$%d", signIndex))
+					signIndex++
+				} else {
+					sqls = append(sqls, "?")
+				}
 				paramNames = append(paramNames, sqlTemp[0:ei])
 				sqlTemp = sqlTemp[ei+1:]
 				startFlag--
@@ -456,7 +472,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 				} else {
 					errorIndex += si
 				}
-				logger.Printf("sql read error \"%v\"\n", markSqlError(sqlOrg, errorIndex))
+				logger.Printf("sql read error \"%v\"", markSqlError(sqlOrg, errorIndex))
 				return
 			}
 
@@ -465,7 +481,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 		//sql end
 
 		if startFlag != 0 {
-			logger.Printf("sql read error \"%v\"\n", markSqlError(sqlOrg, errorIndex))
+			logger.Printf("sql read error \"%v\"", markSqlError(sqlOrg, errorIndex))
 			return
 		}
 		sql = strings.Join(sqls, "")
