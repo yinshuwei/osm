@@ -543,7 +543,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 	} else {
 		sql = sm.sql
 		if ShowSql {
-			logger.Printf(`sql:"%s"`, sqlOrg)
+			logger.Printf(`sql:"%s"`, sql)
 		}
 	}
 	return
