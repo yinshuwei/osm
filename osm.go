@@ -437,7 +437,10 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 
 		var buf bytes.Buffer
 
-		sm.sqlTemplate.Execute(&buf, param)
+		err = sm.sqlTemplate.Execute(&buf, param)
+        if err != nil{
+            logger.Println(err)
+        }
 		sqlOrg := buf.String()
 
 		if ShowSql {

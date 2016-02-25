@@ -314,29 +314,29 @@ func setDataToValue(value reflect.Value, data interface{}) {
 }
 
 // // camel string, xx_yy to XxYy
-func toGoName(s string) string {
-	data := make([]byte, 0, len(s))
-	j := false
-	k := false
-	num := len(s) - 1
-	for i := 0; i <= num; i++ {
-		d := s[i]
-		if k == false && d >= 'A' && d <= 'Z' {
-			k = true
-		}
-		if d >= 'a' && d <= 'z' && (j || k == false) {
-			d = d - 32
-			j = false
-			k = true
-		}
-		if k && d == '_' && num > i /**&& s[i+1] >= 'a' && s[i+1] <= 'z'**/ {
-			j = true
-			continue
-		}
-		data = append(data, d)
-	}
-	return string(data[:len(data)])
-}
+// func toGoName(s string) string {
+// 	data := make([]byte, 0, len(s))
+// 	j := false
+// 	k := false
+// 	num := len(s) - 1
+// 	for i := 0; i <= num; i++ {
+// 		d := s[i]
+// 		if k == false && d >= 'A' && d <= 'Z' {
+// 			k = true
+// 		}
+// 		if d >= 'a' && d <= 'z' && (j || k == false) {
+// 			d = d - 32
+// 			j = false
+// 			k = true
+// 		}
+// 		if k && d == '_' && num > i /**&& s[i+1] >= 'a' && s[i+1] <= 'z'**/ {
+// 			j = true
+// 			continue
+// 		}
+// 		data = append(data, d)
+// 	}
+// 	return string(data[:len(data)])
+// }
 
 // func toGoName(name string) string {
 // 	names := strings.Split(name, "_")
@@ -347,3 +347,47 @@ func toGoName(s string) string {
 // 	}
 // 	return newName
 // }
+
+// camel string, xx_yy to XxYy, 特列字符 ID,JSON
+func toGoName(name string) string {
+	num := len(name)
+	data := make([]byte, len(name))
+	j := 0
+	k := true
+	for i := 0; i < num; i++ {
+		d := name[i]
+		if d == '_' {
+			k = true
+			if j >= 2 && data[j-2] == 'I' && data[j-1] == 'd' {
+				data[j-1] = 'D'
+			}
+			if j >= 4 && data[j-4] == 'J' && data[j-3] == 's' && data[j-2] == 'o' && data[j-1] == 'n' {
+				data[j-3] = 'S'
+				data[j-2] = 'O'
+				data[j-1] = 'N'
+			}
+		} else {
+			if k {
+				if d >= 'a' && d <= 'z' {
+					d = d - 32
+				}
+			} else {
+				if d >= 'A' && d <= 'Z' {
+					d = d + 32
+				}
+			}
+			data[j] = d
+			j++
+			k = false
+		}
+	}
+	if j > 1 && data[j-1] == 'd' && data[j-2] == 'I' {
+		data[j-1] = 'D'
+	}
+	if j >= 4 && data[j-4] == 'J' && data[j-3] == 's' && data[j-2] == 'o' && data[j-1] == 'n' {
+		data[j-3] = 'S'
+		data[j-2] = 'O'
+		data[j-1] = 'N'
+	}
+	return string(data[:j])
+}
