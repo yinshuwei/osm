@@ -348,7 +348,7 @@ func setDataToValue(value reflect.Value, data interface{}) {
 // 	return newName
 // }
 
-// camel string, xx_yy to XxYy, 特列字符 ID,JSON
+// camel string, xx_yy to XxYy, 特列字符 ID
 func toGoName(name string) string {
 	num := len(name)
 	data := make([]byte, len(name))
@@ -360,11 +360,6 @@ func toGoName(name string) string {
 			k = true
 			if j >= 2 && data[j-2] == 'I' && data[j-1] == 'd' {
 				data[j-1] = 'D'
-			}
-			if j >= 4 && data[j-4] == 'J' && data[j-3] == 's' && data[j-2] == 'o' && data[j-1] == 'n' {
-				data[j-3] = 'S'
-				data[j-2] = 'O'
-				data[j-1] = 'N'
 			}
 		} else {
 			if k {
@@ -383,11 +378,6 @@ func toGoName(name string) string {
 	}
 	if j > 1 && data[j-1] == 'd' && data[j-2] == 'I' {
 		data[j-1] = 'D'
-	}
-	if j >= 4 && data[j-4] == 'J' && data[j-3] == 's' && data[j-2] == 'o' && data[j-1] == 'n' {
-		data[j-3] = 'S'
-		data[j-2] = 'O'
-		data[j-1] = 'N'
 	}
 	return string(data[:j])
 }
