@@ -313,7 +313,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 	defer stmt.Close()
 	insertID, err := result.LastInsertId()
 	if err != nil {
-		return insertID, 0, err
+		logger.Println(err)
 	}
 	count, err := result.RowsAffected()
 	return insertID, count, err
