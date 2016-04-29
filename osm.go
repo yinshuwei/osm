@@ -161,6 +161,7 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 func (o *Osm) Begin() (tx *Tx, err error) {
 	tx = new(Tx)
 	tx.sqlMappersMap = o.sqlMappersMap
+	tx.dbType = o.dbType
 
 	if o.db == nil {
 		err = fmt.Errorf("db no opened")
