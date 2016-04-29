@@ -1,4 +1,6 @@
-// osm(Object Sql Mapping)是用go编写的ORM工具，目前很简单，只能算是半成品，只支持mysql(因为我目前的项目是mysql,所以其他数据库没有测试过)。
+package osm
+
+// osm (Object Sql Mapping)是用go编写的ORM工具，目前很简单，只能算是半成品，只支持mysql(因为我目前的项目是mysql,所以其他数据库没有测试过)。
 //
 // 以前是使用MyBatis开发java服务端，它的sql mapping很灵活，把sql独立出来，程序通过输入与输出来完成所有的数据库操作。
 //
@@ -13,30 +15,32 @@
 //   </select>
 //  </osm>
 //
-package osm
 
 import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"github.com/yinshuwei/utils"
 	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/yinshuwei/utils"
 )
 
 const (
-	DBTYPE_MYSQL    = 0
-	DBTYPE_POSTGRES = 1
+	dbtypeMysql    = 0
+	dbtypePostgres = 1
 )
 
-var logger *log.Logger = nil
+var (
+	logger *log.Logger
 
-//显示执行的sql，用于调试，使用logger打印
-var ShowSql = false
+	// ShowSQL 显示执行的sql，用于调试，使用logger打印
+	ShowSQL = false
+)
 
 type dbRunner interface {
 	Prepare(query string) (*sql.Stmt, error)
@@ -51,17 +55,17 @@ type osmBase struct {
 	dbType        int
 }
 
-//osm对象，通过Struct、Map、Array、value等对象以及Sql Map来操作数据库。可以开启事务。
+// Osm 对象，通过Struct、Map、Array、value等对象以及Sql Map来操作数据库。可以开启事务。
 type Osm struct {
 	osmBase
 }
 
-//与Osm对象一样，不过是在事务中进行操作
-type OsmTx struct {
+// Tx 与Osm对象一样，不过是在事务中进行操作
+type Tx struct {
 	osmBase
 }
 
-//创建一个新的Osm，这个过程会打开数据库连接。
+// New 创建一个新的Osm，这个过程会打开数据库连接。
 //
 //driverName是数据库驱动名称如"mysql".
 //dataSource是数据库连接信息如"root:root@/51jczj?charset=utf8".
@@ -95,9 +99,9 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 
 	switch driverName {
 	case "postgres":
-		osm.dbType = DBTYPE_POSTGRES
+		osm.dbType = dbtypePostgres
 	default:
-		osm.dbType = DBTYPE_MYSQL
+		osm.dbType = dbtypeMysql
 	}
 	osm.db = db
 	osm.sqlMappersMap = make(map[string]*sqlMapper)
@@ -111,7 +115,7 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 		}
 	}
 
-	osmXmlPaths := make([]string, 0)
+	osmXMLPaths := []string{}
 	for _, xmlPath := range xmlPaths {
 		var pathInfo os.FileInfo
 		pathInfo, err = os.Stat(xmlPath)
@@ -128,16 +132,16 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 			for _, fileInfo := range fs {
 				fileName := fileInfo.Name()
 				if strings.LastIndex(fileName, ".xml") == (len([]rune(fileName)) - 4) {
-					osmXmlPaths = append(osmXmlPaths, xmlPath+fileName)
+					osmXMLPaths = append(osmXMLPaths, xmlPath+fileName)
 				}
 			}
 		} else {
-			osmXmlPaths = append(osmXmlPaths, xmlPath)
+			osmXMLPaths = append(osmXMLPaths, xmlPath)
 		}
 	}
 
-	for _, osmXmlPath := range osmXmlPaths {
-		sqlMappers, err := readMappers(osmXmlPath)
+	for _, osmXMLPath := range osmXMLPaths {
+		sqlMappers, err := readMappers(osmXMLPath)
 		if err == nil {
 			for _, sm := range sqlMappers {
 				osm.sqlMappersMap[sm.id] = sm
@@ -150,12 +154,12 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 	return
 }
 
-//打开事务
+// Begin 打开事务
 //
 //如：
 //  tx, err := o.Begin()
-func (o *Osm) Begin() (tx *OsmTx, err error) {
-	tx = new(OsmTx)
+func (o *Osm) Begin() (tx *Tx, err error) {
+	tx = new(Tx)
 	tx.sqlMappersMap = o.sqlMappersMap
 
 	if o.db == nil {
@@ -172,7 +176,7 @@ func (o *Osm) Begin() (tx *OsmTx, err error) {
 	return
 }
 
-//与数据库断开连接，释放连接资源
+// Close 与数据库断开连接，释放连接资源
 //
 //如：
 //  err := o.Close()
@@ -191,39 +195,37 @@ func (o *Osm) Close() (err error) {
 	return
 }
 
-//提交事务
+// Commit 提交事务
 //
 //如：
 //  err := tx.Commit()
-func (o *OsmTx) Commit() error {
+func (o *Tx) Commit() error {
 	if o.db == nil {
 		return fmt.Errorf("tx no runing")
 	}
 	sqlTx, ok := o.db.(*sql.Tx)
 	if ok {
 		return sqlTx.Commit()
-	} else {
-		return fmt.Errorf("tx no runing")
 	}
+	return fmt.Errorf("tx no runing")
 }
 
-//事务回滚
+// Rollback 事务回滚
 //
 //如：
 //  err := tx.Rollback()
-func (o *OsmTx) Rollback() error {
+func (o *Tx) Rollback() error {
 	if o.db == nil {
 		return fmt.Errorf("tx no runing")
 	}
 	sqlTx, ok := o.db.(*sql.Tx)
 	if ok {
 		return sqlTx.Rollback()
-	} else {
-		return fmt.Errorf("tx no runing")
 	}
+	return fmt.Errorf("tx no runing")
 }
 
-//执行删除sql
+// Delete 执行删除sql
 //
 //xml
 //  <osm>
@@ -236,7 +238,7 @@ func (o *OsmTx) Rollback() error {
 //  count,err := o.Delete("deleteUser", user)
 //删除id为3的用户数据
 func (o *osmBase) Delete(id string, params ...interface{}) (int64, error) {
-	sql, sqlParams, _, err := o.readSqlParams(id, type_delete, params...)
+	sql, sqlParams, _, err := o.readSQLParams(id, typeDelete, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -252,7 +254,7 @@ func (o *osmBase) Delete(id string, params ...interface{}) (int64, error) {
 	return result.RowsAffected()
 }
 
-//执行更新sql
+// Update 执行更新sql
 //
 //xml
 //  <osm>
@@ -265,7 +267,7 @@ func (o *osmBase) Delete(id string, params ...interface{}) (int64, error) {
 //  count,err := o.Update("updateUserEmail", user)
 //将id为3的用户email更新为"test@foxmail.com"
 func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
-	sql, sqlParams, _, err := o.readSqlParams(id, type_update, params...)
+	sql, sqlParams, _, err := o.readSQLParams(id, typeUpdate, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -281,7 +283,7 @@ func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
 	return result.RowsAffected()
 }
 
-//执行添加sql
+// Insert 执行添加sql
 //
 //xml
 //  <osm>
@@ -294,7 +296,7 @@ func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
 //  insertId,count,err := o.Insert("insertUser", user)
 //添加一个用户数据，email为"test@foxmail.com"
 func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error) {
-	sql, sqlParams, _, err := o.readSqlParams(id, type_insert, params...)
+	sql, sqlParams, _, err := o.readSQLParams(id, typeInsert, params...)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -308,12 +310,12 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 		return 0, 0, err
 	}
 	defer stmt.Close()
-	insertId, err := result.LastInsertId()
+	insertID, err := result.LastInsertId()
 	if err != nil {
-		return insertId, 0, err
+		return insertID, 0, err
 	}
 	count, err := result.RowsAffected()
-	return insertId, count, err
+	return insertID, count, err
 }
 
 //执行查询sql
@@ -337,7 +339,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 //
 //上面的结果为User{Id: "1", Email: "test@foxmail.com", CreateTime: "2014-06-01 12:32:40"}
 func (o *osmBase) Select(id string, params ...interface{}) func(containers ...interface{}) (int64, error) {
-	sql, sqlParams, resultType, err := o.readSqlParams(id, type_select, params...)
+	sql, sqlParams, resultType, err := o.readSQLParams(id, typeSelect, params...)
 
 	if err != nil {
 		return func(containers ...interface{}) (int64, error) {
@@ -345,67 +347,59 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 		}
 	}
 	callback := func(containers ...interface{}) (int64, error) {
-		var err error = nil
+		var err error
 		switch resultType {
-		case result_structs:
+		case resultTypeStructs:
 			if len(containers) == 1 {
 				return resultStructs(o, sql, sqlParams, containers[0])
-			} else {
-				err = fmt.Errorf("result_structs ,len(containers) != 1")
 			}
-		case result_struct:
+			err = fmt.Errorf("resultTypeStructs ,len(containers) != 1")
+		case resultTypeStruct:
 			if len(containers) == 1 {
 				return resultStruct(o, sql, sqlParams, containers[0])
-			} else {
-				err = fmt.Errorf("result_struct ,len(containers) != 1")
 			}
-		case result_maps:
+			err = fmt.Errorf("resultTypeStruct ,len(containers) != 1")
+		case resultTypeMaps:
 			if len(containers) == 1 {
 				return resultMaps(o, sql, sqlParams, containers[0])
-			} else {
-				err = fmt.Errorf("result_maps ,len(containers) != 1")
 			}
-		case result_map:
+			err = fmt.Errorf("resultTypeMaps ,len(containers) != 1")
+		case resultTypeMap:
 			if len(containers) == 1 {
 				return resultMap(o, sql, sqlParams, containers[0])
-			} else {
-				err = fmt.Errorf("result_map ,len(containers) != 1")
 			}
-		case result_arrays:
+			err = fmt.Errorf("resultTypeMap ,len(containers) != 1")
+		case resultTypeArrays:
 			if len(containers) == 1 {
 				return resultArrays(o, sql, sqlParams, containers[0])
-			} else {
-				err = fmt.Errorf("result_arrays ,len(containers) != 1")
 			}
-		case result_array:
+			err = fmt.Errorf("resultTypeArrays ,len(containers) != 1")
+		case resultTypeArray:
 			if len(containers) == 1 {
 				return resultArray(o, sql, sqlParams, containers[0])
-			} else {
-				err = fmt.Errorf("result_array ,len(containers) != 1")
 			}
-		case result_value:
+			err = fmt.Errorf("resultTypeArray ,len(containers) != 1")
+		case resultTypeValue:
 			if len(containers) > 0 {
 				return resultValue(o, sql, sqlParams, containers)
-			} else {
-				err = fmt.Errorf("result_value ,len(containers) < 1")
 			}
-		case result_kvs:
+			err = fmt.Errorf("resultTypeValue ,len(containers) < 1")
+		case resultTypeKvs:
 			if len(containers) == 1 {
 				return resultKvs(o, sql, sqlParams, containers[0])
-			} else {
-				err = fmt.Errorf("result_kvs ,len(containers) != 1")
 			}
+			err = fmt.Errorf("resultTypeKvs ,len(containers) != 1")
 		}
 
 		if err == nil {
-			err = fmt.Errorf("sql result_type no in ['value','struct','','','','']")
+			err = fmt.Errorf("sql resultTypeType no in ['value','struct','','','','']")
 		}
 		return 0, err
 	}
 	return callback
 }
 
-func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (sql string, sqlParams []interface{}, resultType string, err error) {
+func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (sql string, sqlParams []interface{}, resultType string, err error) {
 	sqlParams = make([]interface{}, 0)
 	sm, ok := o.sqlMappersMap[id]
 	err = nil
@@ -431,19 +425,19 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 		}
 
 		//sql start
-		sqls := make([]string, 0)
-		paramNames := make([]string, 0)
+		sqls := []string{}
+		paramNames := []string{}
 		startFlag := 0
 
 		var buf bytes.Buffer
 
 		err = sm.sqlTemplate.Execute(&buf, param)
-        if err != nil{
-            logger.Println(err)
-        }
+		if err != nil {
+			logger.Println(err)
+		}
 		sqlOrg := buf.String()
 
-		if ShowSql {
+		if ShowSQL {
 			logger.Printf(`sql:"%s", params:"%+v"`, sqlOrg, param)
 		}
 
@@ -459,7 +453,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 				startFlag++
 				errorIndex += si + 2
 			} else if (ei != -1 && si != -1 && ei < si) || (ei != -1 && si == -1) {
-				if o.dbType == DBTYPE_POSTGRES {
+				if o.dbType == dbtypePostgres {
 					sqls = append(sqls, fmt.Sprintf("$%d", signIndex))
 					signIndex++
 				} else {
@@ -475,7 +469,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 				} else {
 					errorIndex += si
 				}
-				logger.Printf("sql read error \"%v\"", markSqlError(sqlOrg, errorIndex))
+				logger.Printf("sql read error \"%v\"", markSQLError(sqlOrg, errorIndex))
 				return
 			}
 
@@ -484,7 +478,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 		//sql end
 
 		if startFlag != 0 {
-			logger.Printf("sql read error \"%v\"", markSqlError(sqlOrg, errorIndex))
+			logger.Printf("sql read error \"%v\"", markSQLError(sqlOrg, errorIndex))
 			return
 		}
 		sql = strings.Join(sqls, "")
@@ -500,11 +494,16 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 			}
 		case kind == reflect.Map:
 			for _, paramName := range paramNames {
-				if ok {
-					vv := v.MapIndex(reflect.ValueOf(paramName))
-					sqlParams = append(sqlParams, vv.Interface())
+				vv := v.MapIndex(reflect.ValueOf(paramName))
+				if vv.IsValid() {
+					if vv.Type().String() == "time.Time" {
+						sqlParams = append(sqlParams, timeFormat(vv.Interface().(time.Time), formatDateTime))
+					} else {
+						sqlParams = append(sqlParams, vv.Interface())
+					}
 				} else {
-					err = fmt.Errorf("array type not map[string]interface{} of %s", param)
+					sqlParams = append(sqlParams, nil)
+					err = fmt.Errorf("sql '%s' error : '%s' no exist", sm.id, paramName)
 					return
 				}
 			}
@@ -513,7 +512,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 				vv := v.FieldByName(paramName)
 				if vv.IsValid() {
 					if vv.Type().String() == "time.Time" {
-						sqlParams = append(sqlParams, timeFormat(vv.Interface().(time.Time), format_DateTime))
+						sqlParams = append(sqlParams, timeFormat(vv.Interface().(time.Time), formatDateTime))
 					} else {
 						sqlParams = append(sqlParams, vv.Interface())
 					}
@@ -545,7 +544,7 @@ func (o *osmBase) readSqlParams(id string, sqlType int, params ...interface{}) (
 		}
 	} else {
 		sql = sm.sql
-		if ShowSql {
+		if ShowSQL {
 			logger.Printf(`sql:"%s"`, sql)
 		}
 	}

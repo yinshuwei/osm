@@ -14,7 +14,7 @@ func resultMaps(o *osmBase, sql string, sqlParams []interface{}, container inter
 
 	value := reflect.Indirect(pointValue)
 
-	valueNew := make([]map[string]Data, 0)
+	valueNew := []map[string]Data{}
 
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {

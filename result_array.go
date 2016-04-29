@@ -31,7 +31,7 @@ func resultArray(o *osmBase, sql string, sqlParams []interface{}, container inte
 		}
 
 		refs := make([]interface{}, len(columns))
-		for i, _ := range columns {
+		for i := range columns {
 			var ref interface{}
 			refs[i] = &ref
 		}

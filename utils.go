@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	format_Date     = "2006-01-02"
-	format_DateTime = "2006-01-02 15:04:05"
+	formatDate     = "2006-01-02"
+	formatDateTime = "2006-01-02 15:04:05"
 )
 
 type strTo string
@@ -297,13 +297,13 @@ func setDataToValue(value reflect.Value, data interface{}) {
 			if str != "" {
 				if len(str) >= 19 {
 					str = str[:19]
-					t, err := time.Parse(format_DateTime, str)
+					t, err := time.Parse(formatDateTime, str)
 					if err == nil {
 						value.Set(reflect.ValueOf(t))
 					}
 				} else if len(str) >= 10 {
 					str = str[:10]
-					t, err := time.Parse(format_Date, str)
+					t, err := time.Parse(formatDate, str)
 					if err == nil {
 						value.Set(reflect.ValueOf(t))
 					}

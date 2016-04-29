@@ -39,7 +39,7 @@ func resultValue(o *osmBase, sql string, sqlParams []interface{}, containers []i
 		}
 
 		refs := make([]interface{}, len(columns))
-		for i, _ := range columns {
+		for i := range columns {
 			var ref interface{}
 			refs[i] = &ref
 		}

@@ -14,7 +14,7 @@ func resultArrays(o *osmBase, sql string, sqlParams []interface{}, container int
 
 	value := reflect.Indirect(pointValue)
 
-	valueNew := make([][]Data, 0)
+	valueNew := [][]Data{}
 
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
@@ -32,7 +32,7 @@ func resultArrays(o *osmBase, sql string, sqlParams []interface{}, container int
 		}
 
 		refs := make([]interface{}, len(columns))
-		for i, _ := range columns {
+		for i := range columns {
 			var ref interface{}
 			refs[i] = &ref
 		}

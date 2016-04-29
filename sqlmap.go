@@ -9,19 +9,19 @@ import (
 )
 
 const (
-	type_select = 1
-	type_update = iota
-	type_insert = iota
-	type_delete = iota
+	typeSelect = 1
+	typeUpdate = iota
+	typeInsert = iota
+	typeDelete = iota
 
-	result_value   = "value"   //查出的结果为单行,并存入不定长的变量上(...)
-	result_struct  = "struct"  //查出的结果为单行,并存入struct
-	result_structs = "structs" //查出的结果为多行,并存入struct array
-	result_map     = "map"     //查出的结果为单行,并存入map
-	result_maps    = "maps"    //查出的结果为多行,并存入map array
-	result_array   = "array"   //查出的结果为单行,并存入array
-	result_arrays  = "arrays"  //查出的结果为多行,并存入array array
-	result_kvs     = "kvs"     //查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map
+	resultTypeValue   = "value"   //查出的结果为单行,并存入不定长的变量上(...)
+	resultTypeStruct  = "struct"  //查出的结果为单行,并存入struct
+	resultTypeStructs = "structs" //查出的结果为多行,并存入struct array
+	resultTypeMap     = "map"     //查出的结果为单行,并存入map
+	resultTypeMaps    = "maps"    //查出的结果为多行,并存入map array
+	resultTypeArray   = "array"   //查出的结果为单行,并存入array
+	resultTypeArrays  = "arrays"  //查出的结果为多行,并存入array array
+	resultTypeKvs     = "kvs"     //查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map
 )
 
 type sqlMapper struct {
@@ -32,17 +32,17 @@ type sqlMapper struct {
 	result      string
 }
 
-type stmtXml struct {
-	Id     string `xml:"id,attr"`
+type stmtXML struct {
+	ID     string `xml:"id,attr"`
 	Result string `xml:"result,attr"`
-	Sql    string `xml:",chardata"`
+	SQL    string `xml:",chardata"`
 }
 
-type osmXml struct {
-	Selects []stmtXml `xml:"select"`
-	Deletes []stmtXml `xml:"delete"`
-	Updates []stmtXml `xml:"update"`
-	Inserts []stmtXml `xml:"insert"`
+type osmXML struct {
+	Selects []stmtXML `xml:"select"`
+	Deletes []stmtXML `xml:"delete"`
+	Updates []stmtXML `xml:"update"`
+	Inserts []stmtXML `xml:"insert"`
 }
 
 func readMappers(path string) (sqlMappers []*sqlMapper, err error) {
@@ -56,37 +56,37 @@ func readMappers(path string) (sqlMappers []*sqlMapper, err error) {
 	}
 	defer xmlFile.Close()
 
-	osmXmlObj := osmXml{}
+	osmXMLObj := osmXML{}
 
 	decoder := xml.NewDecoder(xmlFile)
 
-	if err = decoder.Decode(&osmXmlObj); err != nil {
+	if err = decoder.Decode(&osmXMLObj); err != nil {
 		logger.Println("Error decode file: ", err)
 		return
 	}
 
-	for _, deleteStmt := range osmXmlObj.Deletes {
-		sqlMappers = append(sqlMappers, newMapper(deleteStmt, type_delete))
+	for _, deleteStmt := range osmXMLObj.Deletes {
+		sqlMappers = append(sqlMappers, newMapper(deleteStmt, typeDelete))
 	}
-	for _, insertStmt := range osmXmlObj.Inserts {
-		sqlMappers = append(sqlMappers, newMapper(insertStmt, type_insert))
+	for _, insertStmt := range osmXMLObj.Inserts {
+		sqlMappers = append(sqlMappers, newMapper(insertStmt, typeInsert))
 	}
-	for _, selectStmt := range osmXmlObj.Selects {
-		sqlMappers = append(sqlMappers, newMapper(selectStmt, type_select))
+	for _, selectStmt := range osmXMLObj.Selects {
+		sqlMappers = append(sqlMappers, newMapper(selectStmt, typeSelect))
 	}
-	for _, updateStmt := range osmXmlObj.Updates {
-		sqlMappers = append(sqlMappers, newMapper(updateStmt, type_update))
+	for _, updateStmt := range osmXMLObj.Updates {
+		sqlMappers = append(sqlMappers, newMapper(updateStmt, typeUpdate))
 	}
 	return
 }
 
-func newMapper(stmt stmtXml, sqlType int) (sqlMapperObj *sqlMapper) {
+func newMapper(stmt stmtXML, sqlType int) (sqlMapperObj *sqlMapper) {
 	sqlMapperObj = new(sqlMapper)
-	sqlMapperObj.id = stmt.Id
+	sqlMapperObj.id = stmt.ID
 	sqlMapperObj.sqlType = sqlType
 	sqlMapperObj.result = stmt.Result
 
-	sqlTemp := strings.Replace(stmt.Sql, "\n", " ", -1)
+	sqlTemp := strings.Replace(stmt.SQL, "\n", " ", -1)
 	sqlTemp = strings.Replace(sqlTemp, "\t", " ", -1)
 	for strings.Contains(sqlTemp, "  ") {
 		sqlTemp = strings.Replace(sqlTemp, "  ", " ", -1)
@@ -96,7 +96,7 @@ func newMapper(stmt stmtXml, sqlType int) (sqlMapperObj *sqlMapper) {
 	sqlMapperObj.sql = sqlTemp
 
 	var err error
-	sqlMapperObj.sqlTemplate, err = template.New(stmt.Id).Parse(sqlTemp)
+	sqlMapperObj.sqlTemplate, err = template.New(stmt.ID).Parse(sqlTemp)
 
 	if err != nil {
 		logger.Println("sql template create error", err.Error())
@@ -105,7 +105,7 @@ func newMapper(stmt stmtXml, sqlType int) (sqlMapperObj *sqlMapper) {
 	return
 }
 
-func markSqlError(sql string, index int) string {
+func markSQLError(sql string, index int) string {
 	result := fmt.Sprintf("%s[****ERROR****]->%s", sql[0:index], sql[index:])
 	return result
 }
