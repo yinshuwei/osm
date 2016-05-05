@@ -489,7 +489,7 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		kind := v.Kind()
 		switch {
 		case kind == reflect.Array || kind == reflect.Slice:
-			for i := 0; i < v.Len(); i++ {
+			for i := 0; i < v.Len() && i < len(paramNames); i++ {
 				vv := v.Index(i)
 				sqlParams = append(sqlParams, vv.Interface())
 			}
