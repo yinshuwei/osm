@@ -311,10 +311,15 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 		return 0, 0, err
 	}
 	defer stmt.Close()
-	insertID, err := result.LastInsertId()
-	if err != nil {
-		logger.Println(err)
+
+	var insertID int64
+	if o.dbType == dbtypeMysql {
+		insertID, err = result.LastInsertId()
+		if err != nil {
+			logger.Println(err)
+		}
 	}
+
 	count, err := result.RowsAffected()
 	return insertID, count, err
 }
