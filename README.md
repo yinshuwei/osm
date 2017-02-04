@@ -1,7 +1,7 @@
 osm
 ===
 
-osm(Object Sql Mapping And Template)是用go编写的ORM工具，目前很简单，只能算是半成品，只支持mysql和postgresql(其他数据库没有测试过)。
+osm(Object Sql Mapping And Template)是用go编写的ORM工具，目前已在生产环境中使用，只支持mysql和postgresql(其他数据库没有测试过)。
 
 以前是使用MyBatis开发java服务端，它的sql mapping很灵活，把sql独立出来，程序通过输入与输出来完成所有的数据库操作。
 
