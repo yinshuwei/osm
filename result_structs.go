@@ -50,14 +50,24 @@ func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container in
 			for i, col := range columns {
 				fileNames[i] = toGoName(col)
 				f := valueElem.FieldByName(fileNames[i])
-				elementTypes[i] = f.Type()
-				isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
+				if f.IsValid() {
+					elementTypes[i] = f.Type()
+					isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
+				} else {
+					elementTypes[i] = reflect.TypeOf("")
+					fileNames[i] = ""
+				}
 			}
 		}
 		values := make([]reflect.Value, lenColumn)
 		for i, fileName := range fileNames {
-			f := valueElem.FieldByName(fileName)
-			values[i] = f
+			if fileNames[i] != "" {
+				f := valueElem.FieldByName(fileName)
+				values[i] = f
+			} else {
+				a := ""
+				values[i] = reflect.ValueOf(&a).Elem()
+			}
 		}
 		err = scanRow(rows, isPtrs, elementTypes, values)
 		if err != nil {

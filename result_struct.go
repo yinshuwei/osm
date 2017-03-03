@@ -36,9 +36,15 @@ func resultStruct(o *osmBase, sql string, sqlParams []interface{}, container int
 		values := make([]reflect.Value, lenColumn)
 		for i, col := range columns {
 			f := valueElem.FieldByName(toGoName(col))
-			values[i] = f
-			elementTypes[i] = f.Type()
-			isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
+			if f.IsValid() {
+				elementTypes[i] = f.Type()
+				isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
+				values[i] = f
+			} else {
+				a := ""
+				elementTypes[i] = reflect.TypeOf(a)
+				values[i] = reflect.ValueOf(&a).Elem()
+			}
 		}
 		err = scanRow(rows, isPtrs, elementTypes, values)
 		if err != nil {
