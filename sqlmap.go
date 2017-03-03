@@ -15,13 +15,10 @@ const (
 	typeDelete = iota
 
 	resultTypeValue   = "value"   //查出的结果为单行,并存入不定长的变量上(...)
+	resultTypeValues  = "values"  //查出的结果为多行,并存入不定长的变量上(...，每个都为array)
 	resultTypeStruct  = "struct"  //查出的结果为单行,并存入struct
 	resultTypeStructs = "structs" //查出的结果为多行,并存入struct array
-	resultTypeMap     = "map"     //查出的结果为单行,并存入map
-	resultTypeMaps    = "maps"    //查出的结果为多行,并存入map array
-	resultTypeArray   = "array"   //查出的结果为单行,并存入array
-	resultTypeArrays  = "arrays"  //查出的结果为多行,并存入array array
-	resultTypeKvs     = "kvs"     //查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map
+	resultTypeKvs     = "kvs"     //查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
 )
 
 type sqlMapper struct {

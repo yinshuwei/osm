@@ -6,55 +6,41 @@ import (
 )
 
 func resultValue(o *osmBase, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
-	values := make([]reflect.Value, len(containers))
-
+	lenContainers := len(containers)
+	values := make([]reflect.Value, lenContainers)
+	elementTypes := make([]reflect.Type, lenContainers)
+	isPtrs := make([]bool, lenContainers)
 	for i, container := range containers {
 		pointValue := reflect.ValueOf(container)
 		if pointValue.Kind() != reflect.Ptr {
-			panic(fmt.Errorf("Select()() all args must be use ptr"))
+			return 0, fmt.Errorf("value类型Query，查询结果类型应为指针，而您传入的第%d个并不是指针", i+1)
 		}
-
 		value := reflect.Indirect(pointValue)
 		values[i] = value
+		elementTypes[i] = value.Type()
+		isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
 	}
 
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
 		return 0, err
 	}
-
 	defer rows.Close()
-
-	var rowsCount int64
-
 	if rows.Next() {
-
 		columns, err := rows.Columns()
 		if err != nil {
 			return 0, err
 		}
-
-		if len(containers) != len(columns) {
-			return 0, fmt.Errorf("len(containers) != len(columns)")
+		lenColumn := len(columns)
+		if lenColumn != lenContainers {
+			return 0, fmt.Errorf("value类型Query，查询结果的长度与SQL的长度不一致")
 		}
 
-		refs := make([]interface{}, len(columns))
-		for i := range columns {
-			var ref interface{}
-			refs[i] = &ref
-		}
-
-		if err := rows.Scan(refs...); err != nil {
+		err = scanRow(rows, isPtrs, elementTypes, values)
+		if err != nil {
 			return 0, err
 		}
-
-		for i, v := range refs {
-			vv := reflect.ValueOf(v).Elem().Interface()
-			setDataToValue(values[i], vv)
-		}
-
-		rowsCount++
 	}
 
-	return rowsCount, nil
+	return 1, nil
 }

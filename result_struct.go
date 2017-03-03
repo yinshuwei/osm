@@ -8,49 +8,46 @@ import (
 func resultStruct(o *osmBase, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
-		panic(fmt.Errorf("Select()() all args must be use ptr"))
+		return 0, fmt.Errorf("struct类型Query，查询结果类型应为struct的指针，而您传入的并不是指针")
 	}
-
 	value := reflect.Indirect(pointValue)
+	valueElem := value
+	isStructPtr := value.Kind() == reflect.Ptr
+	if isStructPtr {
+		valueElem = reflect.New(value.Type().Elem()).Elem()
+	}
+	if valueElem.Kind() != reflect.Struct {
+		return 0, fmt.Errorf("struct类型Query，查询结果类型应为struct的指针，而您传入的并不是struct")
+	}
 
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
 		return 0, err
 	}
-
 	defer rows.Close()
-
-	var rowsCount int64
-
 	if rows.Next() {
-
 		columns, err := rows.Columns()
 		if err != nil {
 			return 0, err
 		}
-
-		columnsMp := make(map[string]interface{}, len(columns))
-
-		refs := make([]interface{}, len(columns))
+		lenColumn := len(columns)
+		elementTypes := make([]reflect.Type, lenColumn)
+		isPtrs := make([]bool, lenColumn)
+		values := make([]reflect.Value, lenColumn)
 		for i, col := range columns {
-			var ref interface{}
-			columnsMp[toGoName(col)] = &ref
-			refs[i] = &ref
+			f := valueElem.FieldByName(toGoName(col))
+			values[i] = f
+			elementTypes[i] = f.Type()
+			isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
 		}
-
-		if err := rows.Scan(refs...); err != nil {
+		err = scanRow(rows, isPtrs, elementTypes, values)
+		if err != nil {
 			return 0, err
 		}
-
-		for fieldName, v := range columnsMp {
-			f := value.FieldByName(fieldName)
-
-			vv := reflect.ValueOf(v).Elem().Interface()
-			setDataToValue(f, vv)
+		if isStructPtr {
+			value.Set(valueElem.Addr())
 		}
-
-		rowsCount++
 	}
 
-	return rowsCount, nil
+	return 1, nil
 }

@@ -3,14 +3,16 @@ package main
 import (
 	_ "github.com/lib/pq"
 	//_ "github.com/go-sql-driver/mysql"
-	"github.com/yinshuwei/osm"
-	"github.com/yinshuwei/utils"
 	"log"
 	"time"
+
+	"github.com/yinshuwei/osm"
+	"github.com/yinshuwei/utils"
 )
 
+// ResUser 测试用实体
 type ResUser struct {
-	Id          int64
+	ID          int64
 	Email       string
 	Mobile      string
 	Nickname    string
@@ -60,42 +62,6 @@ func main() {
 	o.Select("selectResUser", user)(&u)
 
 	log.Println(u.Id, u.Email)
-
-	/***************/
-	log.Println("maps")
-	var userMaps []map[string]osm.Data
-	o.Select("selectResUserMaps", user)(&userMaps)
-
-	for _, uMap := range userMaps {
-		log.Println(uMap["Id"].Int64(), uMap["Email"].String())
-	}
-
-	/***************/
-	log.Println("map")
-	var userMap map[string]osm.Data
-	o.Select("selectResUserMap", user)(&userMap)
-
-	log.Println(userMap["Id"].Int64(), userMap["Email"].String())
-
-	/***************/
-	log.Println("arrays")
-	var userArrays [][]osm.Data
-	o.Select("selectResUserArrays", "test@foxmail.com")(&userArrays)
-
-	for _, uArray := range userArrays {
-		if uArray != nil && len(uArray) >= 2 {
-			log.Println(uArray[0].Int64(), uArray[1].String())
-		}
-	}
-
-	/***************/
-	log.Println("array")
-	var userArray []osm.Data
-	o.Select("selectResUserArray", user)(&userArray)
-
-	if userArray != nil && len(userArray) >= 2 {
-		log.Println(userArray[0].Int64(), userArray[1].String())
-	}
 
 	/***************/
 	log.Println("value")

@@ -328,13 +328,10 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 //
 //查询结果分为8种，分别是:
 //	"value"   : 查出的结果为单行,并存入不定长的变量上(...)
+//	"values"  : 查出的结果为多行,并存入不定长的变量上(...，每个都为array)
 //	"struct"  : 查出的结果为单行,并存入struct
 //	"structs" : 查出的结果为多行,并存入struct array
-//	"map"     : 查出的结果为单行,并存入map
-//	"maps"    : 查出的结果为多行,并存入map array
-//	"array"   : 查出的结果为单行,并存入array
-//	"arrays"  : 查出的结果为多行,并存入array array
-//	"kvs"     : 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map
+//	"kvs"     : 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
 //xml
 //  <select id="searchArchives" result="struct">
 //   <![CDATA[
@@ -365,31 +362,16 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 				return resultStruct(o, sql, sqlParams, containers[0])
 			}
 			err = fmt.Errorf("resultTypeStruct ,len(containers) != 1")
-		case resultTypeMaps:
-			if len(containers) == 1 {
-				return resultMaps(o, sql, sqlParams, containers[0])
-			}
-			err = fmt.Errorf("resultTypeMaps ,len(containers) != 1")
-		case resultTypeMap:
-			if len(containers) == 1 {
-				return resultMap(o, sql, sqlParams, containers[0])
-			}
-			err = fmt.Errorf("resultTypeMap ,len(containers) != 1")
-		case resultTypeArrays:
-			if len(containers) == 1 {
-				return resultArrays(o, sql, sqlParams, containers[0])
-			}
-			err = fmt.Errorf("resultTypeArrays ,len(containers) != 1")
-		case resultTypeArray:
-			if len(containers) == 1 {
-				return resultArray(o, sql, sqlParams, containers[0])
-			}
-			err = fmt.Errorf("resultTypeArray ,len(containers) != 1")
 		case resultTypeValue:
 			if len(containers) > 0 {
 				return resultValue(o, sql, sqlParams, containers)
 			}
 			err = fmt.Errorf("resultTypeValue ,len(containers) < 1")
+		case resultTypeValues:
+			if len(containers) > 0 {
+				return resultValues(o, sql, sqlParams, containers)
+			}
+			err = fmt.Errorf("resultTypeValues ,len(containers) < 1")
 		case resultTypeKvs:
 			if len(containers) == 1 {
 				return resultKvs(o, sql, sqlParams, containers[0])
