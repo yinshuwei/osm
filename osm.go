@@ -331,8 +331,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 //	"values"  : 查出的结果为多行,并存入不定长的变量上(...，每个都为array)，元素可以是指针，如var r1,r2 []string、var r1,r2 []*string都允许
 //	"struct"  : 查出的结果为单行,并存入struct，可以是指针，如var r User、var r *User
 //	"structs" : 查出的结果为多行,并存入struct array，元素可以是指针，如var r []User、var r []*User
-//	"kvs"     : 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)，Key、Value可以是指针，
-//                   如var r map[string]time.Time、var r map[*string]time.Time、var r map[string]*time.Time
+//	"kvs"     : 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)，Key、Value可以是指针，如var r map[string]time.Time、var r map[*string]time.Time、var r map[string]*time.Time
 //xml
 //  <select id="searchArchives" result="struct">
 //   <![CDATA[
