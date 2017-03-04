@@ -26,8 +26,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/yinshuwei/utils"
 )
 
 const (
@@ -76,7 +74,7 @@ type Tx struct {
 //  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", []string{"test.xml"})
 func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *Osm, err error) {
 	if logger == nil {
-		logger = log.New(utils.LogOutput, "[osm] ", utils.LogFlag)
+		logger = log.New(os.Stdout, "[osm] ", log.Flags())
 	}
 
 	osm = new(Osm)

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/yinshuwei/osm"
-	"github.com/yinshuwei/utils"
 )
 
 // ResUser 测试用实体
@@ -30,8 +29,8 @@ type ResUser struct {
 }
 
 func main() {
-	osm.ShowSql = true
-	utils.SetLogFlags(log.Ldate | log.Lshortfile)
+	osm.ShowSQL = true
+	log.SetFlags(log.Ldate | log.Lshortfile)
 
 	o, err := osm.New("postgres", "host=db01 user=golang password=123456 dbname=golang sslmode=disable", []string{"test.xml"})
 	//o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
@@ -42,7 +41,7 @@ func main() {
 
 	start := time.Now().Nanosecond() / 1000000
 
-	user := ResUser{Email: "test@foxmail.com", Id: 17}
+	user := ResUser{Email: "test@foxmail.com", ID: 17}
 
 	/*************/
 	log.Println("structs")
@@ -53,7 +52,7 @@ func main() {
 		return
 	}
 	for _, u := range users {
-		log.Println(u.Id, u.Email)
+		log.Println(u.ID, u.Email)
 	}
 
 	/*************/
@@ -61,7 +60,7 @@ func main() {
 	u := ResUser{}
 	o.Select("selectResUser", user)(&u)
 
-	log.Println(u.Id, u.Email)
+	log.Println(u.ID, u.Email)
 
 	/***************/
 	log.Println("value")
@@ -94,7 +93,7 @@ func main() {
 	/*****************/
 	log.Println("update")
 	updateResUser := ResUser{
-		Id:         4,
+		ID:         4,
 		Email:      "test@foxmail.com",
 		Birth:      time.Now(),
 		CreateTime: time.Now(),
@@ -103,7 +102,7 @@ func main() {
 
 	/*****************/
 	log.Println("delete")
-	deleteResUser := ResUser{Id: 3}
+	deleteResUser := ResUser{ID: 3}
 	log.Println(o.Delete("deleteResUser", deleteResUser))
 
 	// tx, err := o.Begin()
