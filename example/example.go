@@ -1,11 +1,11 @@
 package main
 
 import (
-	_ "github.com/lib/pq"
-	//_ "github.com/go-sql-driver/mysql"
 	"log"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
+	// _ "github.com/lib/pq"
 	"github.com/yinshuwei/osm"
 )
 
@@ -32,14 +32,14 @@ func main() {
 	osm.ShowSQL = true
 	log.SetFlags(log.Ldate | log.Lshortfile)
 
-	o, err := osm.New("postgres", "host=db01 user=golang password=123456 dbname=golang sslmode=disable", []string{"test.xml"})
-	//o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
+	// o, err := osm.New("postgres", "host=db01 user=golang password=123456 dbname=golang sslmode=disable", []string{"test.xml"})
+	o, err := osm.New("mysql", "root:123456@/test?charset=utf8", []string{"test.xml"})
 	if err != nil {
 		log.Println(err.Error())
 		return
 	}
 
-	start := time.Now().Nanosecond() / 1000000
+	start := time.Now()
 
 	user := ResUser{Email: "test@foxmail.com", ID: 17}
 
@@ -93,7 +93,7 @@ func main() {
 	/*****************/
 	log.Println("update")
 	updateResUser := ResUser{
-		ID:         4,
+		ID:         5,
 		Email:      "test@foxmail.com",
 		Birth:      time.Now(),
 		CreateTime: time.Now(),
@@ -102,7 +102,7 @@ func main() {
 
 	/*****************/
 	log.Println("delete")
-	deleteResUser := ResUser{ID: 3}
+	deleteResUser := ResUser{ID: 6}
 	log.Println(o.Delete("deleteResUser", deleteResUser))
 
 	// tx, err := o.Begin()
@@ -120,7 +120,7 @@ func main() {
 
 	// tx.Commit()
 
-	log.Println(time.Now().Nanosecond()/1000000-start, "ms")
+	log.Println(time.Now().Sub(start))
 
 	err = o.Close()
 	if err != nil {

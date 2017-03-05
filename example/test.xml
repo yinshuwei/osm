@@ -4,7 +4,7 @@
 		SELECT id,email FROM res_user where email=#{Email} order by id
 	</select>
 	<select id="selectResUser" result="struct">
-		SELECT id,email FROM res_user where id=#{Id} order by id
+		SELECT id,email FROM res_user where id=#{ID} order by id
 	</select>
 	<select id="selectResUserMaps" result="maps">
 		SELECT id,email FROM res_user where email=#{Email} order by id
@@ -46,9 +46,9 @@ address = #{Address},
 sex = #{Sex},
 contact_info = #{ContactInfo},
 create_time = #{CreateTime} 
-where id = #{Id};
+where id = #{ID};
 	</update>	
 	<delete id="deleteResUser">
-DELETE FROM res_user where id = #{Id};
+DELETE FROM res_user where id = #{ID};
 	</delete>
 </osm>
