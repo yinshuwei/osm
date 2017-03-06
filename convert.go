@@ -66,6 +66,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 				return nil
 			}
 		}
+		src = s.Local()
 	case nil:
 		if destIsPtr {
 			dest.Set(reflect.New(destType))
