@@ -96,23 +96,23 @@ func scanRow(
 ) error {
 	lenContainers := len(isPtrs)
 	var refs []interface{}
-	isTimes := make([]bool, lenContainers)
+	types := make([]byte, lenContainers)
 	for i, isPtr := range isPtrs {
+		t := elementTypes[i]
 		if isPtr {
-			if elementTypes[i].Elem().String() == "time.Time" {
-				isTimes[i] = true
-				refs = append(refs, new(string))
-			} else {
-				values[i].Set(reflect.New(elementTypes[i].Elem()))
-				refs = append(refs, values[i].Interface())
-			}
+			t = elementTypes[i].Elem()
+		}
+		if t.String() == "time.Time" {
+			types[i] = 1 // time.Time
+			refs = append(refs, new(string))
+		} else if t.Kind() == reflect.String {
+			types[i] = 2 // string
+			refs = append(refs, new([]byte))
+		} else if isPtr {
+			values[i].Set(reflect.New(t))
+			refs = append(refs, values[i].Interface())
 		} else {
-			if elementTypes[i].String() == "time.Time" {
-				isTimes[i] = true
-				refs = append(refs, new(string))
-			} else {
-				refs = append(refs, values[i].Addr().Interface())
-			}
+			refs = append(refs, values[i].Addr().Interface())
 		}
 	}
 
@@ -122,34 +122,43 @@ func scanRow(
 	}
 
 	for i, isPtr := range isPtrs {
-		if isTimes[i] {
-			strPtr, ok := refs[i].(*string)
-			if ok && strPtr != nil {
-				str := *strPtr
-				if str != "" {
-					var t time.Time
-					if len(str) >= 19 {
-						if strings.Contains(str, "T") {
-							t, err = time.Parse(time.RFC3339Nano, str)
-						} else {
-							str = str[:19]
-							t, err = time.Parse(formatDateTime, str)
-						}
-					} else if len(str) >= 10 {
-						str = str[:10]
-						t, err = time.Parse(formatDate, str)
-					}
-					if err == nil {
-						t = t.Local()
-						if isPtr {
-							values[i].Set(reflect.ValueOf(&t))
-						} else {
-							values[i].Set(reflect.ValueOf(t))
-						}
+		if refs[i] == nil {
+			continue
+		}
+		if types[i] == 1 {
+			strPtr, _ := refs[i].(*string)
+			str := *strPtr
+			if str != "" {
+				var t time.Time
+				if len(str) >= 19 {
+					if strings.Contains(str, "T") {
+						t, err = time.Parse(time.RFC3339Nano, str)
 					} else {
-						log.Println(err)
+						str = str[:19]
+						t, err = time.Parse(formatDateTime, str)
 					}
+				} else if len(str) >= 10 {
+					str = str[:10]
+					t, err = time.Parse(formatDate, str)
 				}
+				if err == nil {
+					t = t.Local()
+					if isPtr {
+						values[i].Set(reflect.ValueOf(&t))
+					} else {
+						values[i].Set(reflect.ValueOf(t))
+					}
+				} else {
+					log.Println(err)
+				}
+			}
+		} else if types[i] == 2 {
+			bytePtr, _ := refs[i].(*[]byte)
+			str := string(*bytePtr)
+			if isPtr {
+				values[i].Set(reflect.ValueOf(&str))
+			} else {
+				values[i].Set(reflect.ValueOf(str))
 			}
 		}
 	}
