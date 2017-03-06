@@ -2,9 +2,7 @@ package osm
 
 import (
 	"database/sql"
-	"log"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -95,25 +93,17 @@ func scanRow(
 	values []reflect.Value,
 ) error {
 	lenContainers := len(isPtrs)
-	var refs []interface{}
-	types := make([]byte, lenContainers)
+	srcs := make([]*interface{}, lenContainers)
+	refs := make([]interface{}, lenContainers)
+	types := make([]reflect.Type, lenContainers)
 	for i, isPtr := range isPtrs {
-		t := elementTypes[i]
+		types[i] = elementTypes[i]
 		if isPtr {
-			t = elementTypes[i].Elem()
+			types[i] = elementTypes[i].Elem()
 		}
-		if t.String() == "time.Time" {
-			types[i] = 1 // time.Time
-			refs = append(refs, new(string))
-		} else if t.Kind() == reflect.String {
-			types[i] = 2 // string
-			refs = append(refs, new([]byte))
-		} else if isPtr {
-			values[i].Set(reflect.New(t))
-			refs = append(refs, values[i].Interface())
-		} else {
-			refs = append(refs, values[i].Addr().Interface())
-		}
+		ref := new(interface{})
+		refs[i] = ref
+		srcs[i] = ref
 	}
 
 	err := rows.Scan(refs...)
@@ -121,46 +111,11 @@ func scanRow(
 		return err
 	}
 
-	for i, isPtr := range isPtrs {
-		if refs[i] == nil {
+	for i, src := range srcs {
+		if src == nil {
 			continue
 		}
-		if types[i] == 1 {
-			strPtr, _ := refs[i].(*string)
-			str := *strPtr
-			if str != "" {
-				var t time.Time
-				if len(str) >= 19 {
-					if strings.Contains(str, "T") {
-						t, err = time.Parse(time.RFC3339Nano, str)
-					} else {
-						str = str[:19]
-						t, err = time.Parse(formatDateTime, str)
-					}
-				} else if len(str) >= 10 {
-					str = str[:10]
-					t, err = time.Parse(formatDate, str)
-				}
-				if err == nil {
-					t = t.Local()
-					if isPtr {
-						values[i].Set(reflect.ValueOf(&t))
-					} else {
-						values[i].Set(reflect.ValueOf(t))
-					}
-				} else {
-					log.Println(err)
-				}
-			}
-		} else if types[i] == 2 {
-			bytePtr, _ := refs[i].(*[]byte)
-			str := string(*bytePtr)
-			if isPtr {
-				values[i].Set(reflect.ValueOf(&str))
-			} else {
-				values[i].Set(reflect.ValueOf(str))
-			}
-		}
+		convertAssign(values[i], *src, isPtrs[i], types[i])
 	}
 	return nil
 }
