@@ -82,8 +82,10 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		return nil
 	}
 	if srcType.ConvertibleTo(destType) {
-		setValueConvert(destIsPtr, dest, src, destType)
-		return nil
+		if destType.Kind() != reflect.String {
+			setValueConvert(destIsPtr, dest, src, destType)
+			return nil
+		}
 	}
 
 	var sv reflect.Value
