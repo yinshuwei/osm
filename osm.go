@@ -413,8 +413,6 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		//sql start
 		sqls := []string{}
 		paramNames := []string{}
-		startFlag := 0
-
 		var buf bytes.Buffer
 
 		err = sm.sqlTemplate.Execute(&buf, param)
@@ -430,15 +428,14 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		sqlTemp := sqlOrg
 		errorIndex := 0
 		signIndex := 1
-		for strings.Contains(sqlTemp, "#{") || strings.Contains(sqlTemp, "}") {
+		for strings.Contains(sqlTemp, "#{") {
 			si := strings.Index(sqlTemp, "#{")
+			sqls = append(sqls, sqlTemp[0:si])
+			sqlTemp = sqlTemp[si+2:]
+			errorIndex += si + 2
+
 			ei := strings.Index(sqlTemp, "}")
-			if si != -1 && si < ei {
-				sqls = append(sqls, sqlTemp[0:si])
-				sqlTemp = sqlTemp[si+2:]
-				startFlag++
-				errorIndex += si + 2
-			} else if (ei != -1 && si != -1 && ei < si) || (ei != -1 && si == -1) {
+			if ei != -1 {
 				if o.dbType == dbtypePostgres {
 					sqls = append(sqls, fmt.Sprintf("$%d", signIndex))
 					signIndex++
@@ -447,26 +444,15 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 				}
 				paramNames = append(paramNames, sqlTemp[0:ei])
 				sqlTemp = sqlTemp[ei+1:]
-				startFlag--
 				errorIndex += ei + 1
 			} else {
-				if ei > -1 {
-					errorIndex += ei
-				} else {
-					errorIndex += si
-				}
 				logger.Printf("sql read error \"%v\"", markSQLError(sqlOrg, errorIndex))
 				return
 			}
-
 		}
 		sqls = append(sqls, sqlTemp)
 		//sql end
 
-		if startFlag != 0 {
-			logger.Printf("sql read error \"%v\"", markSQLError(sqlOrg, errorIndex))
-			return
-		}
 		sql = strings.Join(sqls, "")
 
 		v := reflect.ValueOf(param)
