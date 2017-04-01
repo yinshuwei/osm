@@ -58,7 +58,7 @@ func readMappers(path string) (sqlMappers []*sqlMapper, err error) {
 	decoder := xml.NewDecoder(xmlFile)
 
 	if err = decoder.Decode(&osmXMLObj); err != nil {
-		logger.Println("Error decode file: ", err)
+		logger.Println("Error decode file: ", path, err)
 		return
 	}
 
