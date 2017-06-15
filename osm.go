@@ -282,6 +282,30 @@ func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
 	return result.RowsAffected()
 }
 
+// UpdateMulti 批量执行更新sql
+//
+//xml
+//  <osm>
+//  ...
+//    <update id="updateUserEmail">
+//       UPDATE user SET email=#{Email} where id = #{Id};
+//       UPDATE user SET email=#{Email} where id = #{Id2};
+//    </update>
+//  ...
+//  </osm>
+//代码
+//  user := User{Id: 3, Id2: 4, Email: "test@foxmail.com"}
+//  count,err := o.Update("updateUserEmail", user)
+//将id为3和4的用户email更新为"test@foxmail.com"
+func (o *osmBase) UpdateMulti(id string, params ...interface{}) error {
+	sql, sqlParams, _, err := o.readSQLParams(id, typeUpdate, params...)
+	if err != nil {
+		return err
+	}
+	_, err = o.db.Exec(sql, sqlParams...)
+	return err
+}
+
 // Insert 执行添加sql
 //
 //xml
@@ -382,7 +406,13 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 		}
 		return 0, err
 	}
-	return callback
+	return func(containers ...interface{}) (int64, error) {
+		a, err := callback(containers...)
+		if err != nil {
+			log.Println(err)
+		}
+		return a, err
+	}
 }
 
 func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (sql string, sqlParams []interface{}, resultType string, err error) {
