@@ -406,13 +406,7 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 		}
 		return 0, err
 	}
-	return func(containers ...interface{}) (int64, error) {
-		a, err := callback(containers...)
-		if err != nil {
-			log.Println(err)
-		}
-		return a, err
-	}
+	return callback
 }
 
 func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (sql string, sqlParams []interface{}, resultType string, err error) {
