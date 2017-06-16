@@ -295,7 +295,7 @@ func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
 //  </osm>
 //代码
 //  user := User{Id: 3, Id2: 4, Email: "test@foxmail.com"}
-//  count,err := o.Update("updateUserEmail", user)
+//  err := o.UpdateMulti("updateUserEmail", user)
 //将id为3和4的用户email更新为"test@foxmail.com"
 func (o *osmBase) UpdateMulti(id string, params ...interface{}) error {
 	sql, sqlParams, _, err := o.readSQLParams(id, typeUpdate, params...)
