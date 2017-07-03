@@ -446,7 +446,7 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		sqlOrg := buf.String()
 
 		if ShowSQL {
-			logger.Printf(`sql:"%s", params:"%+v"`, sqlOrg, param)
+			logger.Printf(`id:"%s", sql:"%s", params:"%+v"`, id, sqlOrg, param)
 		}
 
 		sqlTemp := sqlOrg
@@ -541,7 +541,7 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 	} else {
 		sql = sm.sql
 		if ShowSQL {
-			logger.Printf(`sql:"%s"`, sql)
+			logger.Printf(`id:"%s", sql:"%s"`, id, sql)
 		}
 	}
 	return
