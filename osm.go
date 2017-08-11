@@ -95,6 +95,16 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 		return
 	}
 
+	go func() {
+		for {
+			err := db.Ping()
+			if err != nil {
+				log.Println("Ping Fail,", err)
+			}
+			time.Sleep(time.Minute)
+		}
+	}()
+
 	switch driverName {
 	case "postgres":
 		osm.dbType = dbtypePostgres
