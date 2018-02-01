@@ -30,10 +30,10 @@ func resultStruct(o *osmBase, sql string, sqlParams []interface{}, container int
 		if err != nil {
 			return 0, err
 		}
-		lenColumn := len(columns)
-		elementTypes := make([]reflect.Type, lenColumn)
-		isPtrs := make([]bool, lenColumn)
-		values := make([]reflect.Value, lenColumn)
+		columnsCount := len(columns)
+		elementTypes := make([]reflect.Type, columnsCount)
+		isPtrs := make([]bool, columnsCount)
+		values := make([]reflect.Value, columnsCount)
 		for i, col := range columns {
 			f := valueElem.FieldByName(toGoName(col))
 			if f.IsValid() {

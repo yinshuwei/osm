@@ -30,15 +30,15 @@ func resultValues(o *osmBase, sql string, sqlParams []interface{}, containers []
 	}
 	defer rows.Close()
 	var rowsCount int64
-	var lenColumn int
+	var columnsCount int
 	for rows.Next() {
 		if rowsCount == 0 {
 			columns, err := rows.Columns()
 			if err != nil {
 				return 0, err
 			}
-			lenColumn = len(columns)
-			if lenColumn != lenContainers {
+			columnsCount = len(columns)
+			if columnsCount != lenContainers {
 				return 0, fmt.Errorf("values类型Query，查询结果的长度与SQL的长度不一致")
 			}
 		}

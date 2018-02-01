@@ -31,8 +31,8 @@ func resultValue(o *osmBase, sql string, sqlParams []interface{}, containers []i
 		if err != nil {
 			return 0, err
 		}
-		lenColumn := len(columns)
-		if lenColumn != lenContainers {
+		columnsCount := len(columns)
+		if columnsCount != lenContainers {
 			return 0, fmt.Errorf("value类型Query，查询结果的长度与SQL的长度不一致")
 		}
 
