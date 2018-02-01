@@ -39,26 +39,26 @@ func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container in
 	}
 	defer rows.Close()
 	var rowsCount int64             // 读取的行数，用于返回
-	var lenColumn int               // 读取的列数
-	var elementTypes []reflect.Type // struct所有成员的类型，与sql中的列对应
-	var isPtrs []bool               // struct所有成员的类型是否为指针，与sql中的列对应
-	var fieldNames []string         // struct所有成员的名字，与sql中的列对应
+	var columnsCount int            // 读取的列数
+	var elementTypes []reflect.Type // struct每个成员的类型，与sql中的列对应
+	var isPtrs []bool               // struct每个成员的类型是否为指针，与sql中的列对应
+	var fieldNames []string         // struct每个成员的名字，与sql中的列对应
 
 	// 遍历数据
 	for rows.Next() {
 		// 创建建struct实列,用来装这一行数据
 		valueElem := reflect.New(structType).Elem()
-		// 当isPtrs没有内容时,计算lenColumn,elementTypes,isPtrs,fieldNames的结果
+		// 当isPtrs没有内容时,rowsCount,columnsCount,elementTypes,isPtrs,fieldNames的结果
 		if isPtrs == nil {
 			columns, err := rows.Columns()
 			if err != nil {
 				return 0, err
 			}
-			lenColumn = len(columns)
+			columnsCount = len(columns)
 			// 定义
-			elementTypes = make([]reflect.Type, lenColumn)
-			isPtrs = make([]bool, lenColumn)
-			fieldNames = make([]string, lenColumn)
+			elementTypes = make([]reflect.Type, columnsCount)
+			isPtrs = make([]bool, columnsCount)
+			fieldNames = make([]string, columnsCount)
 			// 计算
 			for i, col := range columns {
 				fieldNames[i] = toGoName(col)
@@ -73,7 +73,7 @@ func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container in
 			}
 		}
 		// 通过fieldName,创建struct实列的成员实例切片
-		values := make([]reflect.Value, lenColumn)
+		values := make([]reflect.Value, columnsCount)
 		for i, fieldName := range fieldNames {
 			if fieldNames[i] != "" {
 				f := valueElem.FieldByName(fieldName)
