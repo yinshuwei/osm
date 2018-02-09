@@ -97,7 +97,6 @@ var commonInitialisms = map[string][]byte{
 	"Html":  []byte("HTML"),
 	"Http":  []byte("HTTP"),
 	"Https": []byte("HTTPS"),
-	"Id":    []byte("ID"),
 	"Ip":    []byte("IP"),
 	"Json":  []byte("JSON"),
 	"Lhs":   []byte("LHS"),
@@ -138,10 +137,16 @@ func toGoNames(name string) (string, string) {
 	for i := 0; i < num; i++ {
 		d := name[i]
 		if d == '_' {
-			word, ok := commonInitialisms[string(data[firstPoint:point])]
-			if ok {
-				for j, b := range word {
-					dataSpecial[firstPoint+j] = b
+			lastWord := string(data[firstPoint:point])
+			if lastWord == "Id" {
+				data[firstPoint+1] = 'D'
+				dataSpecial[firstPoint+1] = 'D'
+			} else {
+				word, ok := commonInitialisms[lastWord]
+				if ok {
+					for j, b := range word {
+						dataSpecial[firstPoint+j] = b
+					}
 				}
 			}
 			isFirst = true
@@ -162,10 +167,16 @@ func toGoNames(name string) (string, string) {
 			isFirst = false
 		}
 	}
-	word, ok := commonInitialisms[string(data[firstPoint:point])]
-	if ok {
-		for j, b := range word {
-			dataSpecial[firstPoint+j] = b
+	lastWord := string(data[firstPoint:point])
+	if lastWord == "Id" {
+		data[firstPoint+1] = 'D'
+		dataSpecial[firstPoint+1] = 'D'
+	} else {
+		word, ok := commonInitialisms[lastWord]
+		if ok {
+			for j, b := range word {
+				dataSpecial[firstPoint+j] = b
+			}
 		}
 	}
 
