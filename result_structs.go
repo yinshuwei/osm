@@ -32,17 +32,23 @@ func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container in
 		return 0, fmt.Errorf("structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是struct")
 	}
 
+	var rowsCount int64                               // 读取的行数，用于返回
+	var columnsCount int                              // 读取的列数
+	var elementTypes []reflect.Type                   // struct成员的类型，与sql中的列对应
+	var isPtrs []bool                                 // struct成员的类型是否为指针，与sql中的列对应
+	var fieldNames []string                           // struct成员的名字，与sql中的列对应
+	allFieldNameTypeMap := map[string]*reflect.Type{} // struct每个成员的名字，不一定与sql中的列对应
+	for i := 0; i < structType.NumField(); i++ {
+		t := structType.Field(i)
+		allFieldNameTypeMap[t.Name] = &(t.Type)
+	}
+
 	// 使用提供的SQL，从数据库读取数据
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
 		return 0, err
 	}
 	defer rows.Close()
-	var rowsCount int64             // 读取的行数，用于返回
-	var columnsCount int            // 读取的列数
-	var elementTypes []reflect.Type // struct每个成员的类型，与sql中的列对应
-	var isPtrs []bool               // struct每个成员的类型是否为指针，与sql中的列对应
-	var fieldNames []string         // struct每个成员的名字，与sql中的列对应
 
 	// 遍历数据
 	for rows.Next() {
@@ -61,10 +67,10 @@ func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container in
 			fieldNames = make([]string, columnsCount)
 			// 计算
 			for i, col := range columns {
-				fieldNames[i] = toGoName(col)
-				f := valueElem.FieldByName(fieldNames[i])
-				if f.IsValid() {
-					elementTypes[i] = f.Type()
+				filedName, t := findFiled(allFieldNameTypeMap, col)
+				fieldNames[i] = filedName
+				if filedName != "" && t != nil {
+					elementTypes[i] = *t
 					isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
 				} else { // 如果列中有,而struct中没有时，fieldName为""
 					elementTypes[i] = reflect.TypeOf("")

@@ -52,20 +52,107 @@ func timeFormat(t time.Time, format string) string {
 // }
 
 // camel string, xx_yy to XxYy, 特列字符 ID
-func toGoName(name string) string {
+// func toGoName(name string) string {
+// 	num := len(name)
+// 	data := make([]byte, len(name))
+// 	j := 0
+// 	k := true
+// 	for i := 0; i < num; i++ {
+// 		d := name[i]
+// 		if d == '_' {
+// 			k = true
+// 			if j >= 2 && data[j-2] == 'I' && data[j-1] == 'd' {
+// 				data[j-1] = 'D'
+// 			}
+// 		} else {
+// 			if k {
+// 				if d >= 'a' && d <= 'z' {
+// 					d = d - 32
+// 				}
+// 			} else {
+// 				if d >= 'A' && d <= 'Z' {
+// 					d = d + 32
+// 				}
+// 			}
+// 			data[j] = d
+// 			j++
+// 			k = false
+// 		}
+// 	}
+// 	if j > 1 && data[j-1] == 'd' && data[j-2] == 'I' {
+// 		data[j-1] = 'D'
+// 	}
+// 	return string(data[:j])
+// }
+
+var commonInitialisms = map[string][]byte{
+	"Acl":   []byte("ACL"),
+	"Api":   []byte("API"),
+	"Ascii": []byte("ASCII"),
+	"Cpu":   []byte("CPU"),
+	"Css":   []byte("CSS"),
+	"Dns":   []byte("DNS"),
+	"Eof":   []byte("EOF"),
+	"Guid":  []byte("GUID"),
+	"Html":  []byte("HTML"),
+	"Http":  []byte("HTTP"),
+	"Https": []byte("HTTPS"),
+	"Ip":    []byte("IP"),
+	"Json":  []byte("JSON"),
+	"Lhs":   []byte("LHS"),
+	"Qps":   []byte("QPS"),
+	"Ram":   []byte("RAM"),
+	"Rhs":   []byte("RHS"),
+	"Rpc":   []byte("RPC"),
+	"Sla":   []byte("SLA"),
+	"Smtp":  []byte("SMTP"),
+	"Sql":   []byte("SQL"),
+	"Ssh":   []byte("SSH"),
+	"Tcp":   []byte("TCP"),
+	"Tls":   []byte("TLS"),
+	"Ttl":   []byte("TTL"),
+	"Udp":   []byte("UDP"),
+	"Ui":    []byte("UI"),
+	"Uid":   []byte("UID"),
+	"Uuid":  []byte("UUID"),
+	"Uri":   []byte("URI"),
+	"Url":   []byte("URL"),
+	"Utf8":  []byte("UTF8"),
+	"Vm":    []byte("VM"),
+	"Xml":   []byte("XML"),
+	"Xmpp":  []byte("XMPP"),
+	"Xsrf":  []byte("XSRF"),
+	"Xss":   []byte("XSS"),
+}
+
+// camel string, xx_yy to XxYy, 两种,一种为特殊片段
+func toGoNames(name string) (string, string) {
 	num := len(name)
-	data := make([]byte, len(name))
-	j := 0
-	k := true
+	data := make([]byte, num)
+	dataSpecial := make([]byte, num)
+	point := 0
+	isFirst := true
+	firstPoint := 0
+
 	for i := 0; i < num; i++ {
 		d := name[i]
 		if d == '_' {
-			k = true
-			if j >= 2 && data[j-2] == 'I' && data[j-1] == 'd' {
-				data[j-1] = 'D'
+			lastWord := string(data[firstPoint:point])
+			if lastWord == "Id" {
+				data[firstPoint+1] = 'D'
+				dataSpecial[firstPoint+1] = 'D'
+			} else {
+				word, ok := commonInitialisms[lastWord]
+				if ok {
+					for j, b := range word {
+						dataSpecial[firstPoint+j] = b
+					}
+				}
 			}
+			isFirst = true
+			firstPoint = point
 		} else {
-			if k {
+			if isFirst {
 				if d >= 'a' && d <= 'z' {
 					d = d - 32
 				}
@@ -74,15 +161,39 @@ func toGoName(name string) string {
 					d = d + 32
 				}
 			}
-			data[j] = d
-			j++
-			k = false
+			data[point] = d
+			dataSpecial[point] = d
+			point++
+			isFirst = false
 		}
 	}
-	if j > 1 && data[j-1] == 'd' && data[j-2] == 'I' {
-		data[j-1] = 'D'
+	lastWord := string(data[firstPoint:point])
+	if lastWord == "Id" {
+		data[firstPoint+1] = 'D'
+		dataSpecial[firstPoint+1] = 'D'
+	} else {
+		word, ok := commonInitialisms[lastWord]
+		if ok {
+			for j, b := range word {
+				dataSpecial[firstPoint+j] = b
+			}
+		}
 	}
-	return string(data[:j])
+
+	return string(data[:point]), string(dataSpecial[:point])
+}
+
+func findFiled(allFieldNameTypeMap map[string]*reflect.Type, name string) (string, *reflect.Type) {
+	a, b := toGoNames(name)
+	t, ok := allFieldNameTypeMap[a]
+	if ok {
+		return a, t
+	}
+	t, ok = allFieldNameTypeMap[b]
+	if ok {
+		return b, t
+	}
+	return "", nil
 }
 
 // scanRow 从sql.Rows中读一行数据
