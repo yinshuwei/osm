@@ -1,34 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <osm>
 	<select id="selectResUsers" result="structs">
-		SELECT id,email FROM res_user where email=#{Email} order by id
+		SELECT id,email,head_image_url FROM res_user where email=#{Email} order by id
 	</select>
 	<select id="selectResUser" result="struct">
-		SELECT id,email FROM res_user where id=#{ID} order by id
-	</select>
-	<select id="selectResUserMaps" result="maps">
-		SELECT id,email FROM res_user where email=#{Email} order by id
-	</select>
-	<select id="selectResUserMap" result="map">
-		SELECT id,email FROM res_user where email=#{Email} order by id
-	</select>
-	<select id="selectResUserArrays" result="arrays">
-		SELECT id,email FROM res_user where email=#{Email} order by id
-	</select>
-	<select id="selectResUserArray" result="array">
-		SELECT id,email FROM res_user where email=#{Email} order by id
+		SELECT id,email,head_image_url FROM res_user where email=#{Email} order by id
 	</select>
 	<select id="selectResUserValue" result="value">
-		SELECT id,email FROM res_user where email=#{Email} order by id
+		SELECT id,email,head_image_url FROM res_user where email=#{Email} order by id
+	</select>
+	<select id="selectResUserValues" result="values">
+		SELECT id,email,head_image_url FROM res_user where email=#{Email} order by id
 	</select>
 	<select id="selectResUserKvs" result="kvs">
 		SELECT id,email FROM res_user where email=#{Email} order by id
 	</select>
 	<insert id="insertResUser">
 INSERT INTO res_user
-(email,mobile,nickname,password,description,name,birth,province,city,company,address,sex,contact_info,create_time)
+(email,mobile,nickname,password,head_image_url,description,name,birth,province,city,company,address,sex,contact_info,create_time)
 VALUES
-(#{Email},#{Mobile},#{Nickname},#{Password},#{Description},#{Name},#{Birth},#{Province},#{City},#{Company},#{Address},#{Sex},#{ContactInfo},#{CreateTime});
+(#{Email},#{Mobile},#{Nickname},#{Password},#{HeadImageURL},#{Description},#{Name},#{Birth},#{Province},#{City},#{Company},#{Address},#{Sex},#{ContactInfo},#{CreateTime});
 	</insert>
 	<update id="updateResUser">
 UPDATE res_user SET
@@ -36,6 +27,7 @@ email = #{Email},
 mobile = #{Mobile},
 nickname = #{Nickname},
 password = #{Password},
+head_image_url = #{HeadImageURL},
 description = #{Description},
 name = #{Name},
 birth = #{Birth},

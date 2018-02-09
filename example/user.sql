@@ -5,6 +5,7 @@ CREATE TABLE `res_user` (
   `mobile` varchar(45) DEFAULT NULL,
   `nickname` varchar(45) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
+  `head_image_url` varchar(255) DEFAULT NULL,
   `description` varchar(255) DEFAULT NULL COMMENT '自我描述',
   `name` varchar(45) DEFAULT NULL,
   `birth` date DEFAULT NULL,
@@ -16,7 +17,7 @@ CREATE TABLE `res_user` (
   `contact_info` varchar(1000) DEFAULT NULL COMMENT '联系方式：如qq,msn,网站等 json方式保存{"key","value"}',
   `create_time` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COMMENT='用户表';
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='用户表';
 
 
 
@@ -28,6 +29,7 @@ CREATE TABLE res_user
   mobile character varying(45),
   nickname character varying(45),
   password character varying(255),
+  head_image_url character varying(255),
   description character varying(255), -- 自我描述
   name character varying(45),
   birth timestamp with time zone,
