@@ -412,7 +412,7 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 		}
 
 		if err == nil {
-			err = fmt.Errorf("sql resultTypeType no in ['value','struct','','','','']")
+			err = fmt.Errorf("sql resultTypeType no in ['value','struct','values','structs','kvs']")
 		}
 		return 0, err
 	}
