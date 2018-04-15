@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func resultValue(o *osmBase, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
+func resultValue(o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
 	lenContainers := len(containers)
 	values := make([]reflect.Value, lenContainers)
 	elementTypes := make([]reflect.Type, lenContainers)
@@ -13,7 +13,7 @@ func resultValue(o *osmBase, sql string, sqlParams []interface{}, containers []i
 	for i, container := range containers {
 		pointValue := reflect.ValueOf(container)
 		if pointValue.Kind() != reflect.Ptr {
-			return 0, fmt.Errorf("value类型Query，查询结果类型应为指针，而您传入的第%d个并不是指针", i+1)
+			return 0, fmt.Errorf("sql '%s' error : value类型Query，查询结果类型应为指针，而您传入的第%d个并不是指针", id, i+1)
 		}
 		value := reflect.Indirect(pointValue)
 		values[i] = value
@@ -33,7 +33,7 @@ func resultValue(o *osmBase, sql string, sqlParams []interface{}, containers []i
 		}
 		columnsCount := len(columns)
 		if columnsCount != lenContainers {
-			return 0, fmt.Errorf("value类型Query，查询结果的长度与SQL的长度不一致")
+			return 0, fmt.Errorf("sql '%s' error : value类型Query，查询结果的长度与SQL的长度不一致", id)
 		}
 
 		err = scanRow(rows, isPtrs, elementTypes, values)

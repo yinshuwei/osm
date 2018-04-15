@@ -5,10 +5,10 @@ import (
 	"reflect"
 )
 
-func resultStruct(o *osmBase, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
+func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
-		return 0, fmt.Errorf("struct类型Query，查询结果类型应为struct的指针，而您传入的并不是指针")
+		return 0, fmt.Errorf("sql '%s' error : struct类型Query，查询结果类型应为struct的指针，而您传入的并不是指针", id)
 	}
 	value := reflect.Indirect(pointValue)
 	valueElem := value
@@ -17,7 +17,7 @@ func resultStruct(o *osmBase, sql string, sqlParams []interface{}, container int
 		valueElem = reflect.New(value.Type().Elem()).Elem()
 	}
 	if valueElem.Kind() != reflect.Struct {
-		return 0, fmt.Errorf("struct类型Query，查询结果类型应为struct的指针，而您传入的并不是struct")
+		return 0, fmt.Errorf("sql '%s' error : struct类型Query，查询结果类型应为struct的指针，而您传入的并不是struct", id)
 	}
 
 	rows, err := o.db.Query(sql, sqlParams...)

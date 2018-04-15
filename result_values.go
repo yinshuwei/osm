@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func resultValues(o *osmBase, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
+func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
 	lenContainers := len(containers)
 	values := make([]reflect.Value, lenContainers)
 	elementTypes := make([]reflect.Type, lenContainers)
@@ -13,11 +13,11 @@ func resultValues(o *osmBase, sql string, sqlParams []interface{}, containers []
 	for i, container := range containers {
 		pointValue := reflect.ValueOf(container)
 		if pointValue.Kind() != reflect.Ptr {
-			return 0, fmt.Errorf("values类型Query，查询结果类型应为slice的指针，而您传入的第%d个并不是指针", i+1)
+			return 0, fmt.Errorf("sql '%s' error : values类型Query，查询结果类型应为slice的指针，而您传入的第%d个并不是指针", id, i+1)
 		}
 		value := reflect.Indirect(pointValue)
 		if value.Kind() != reflect.Slice {
-			return 0, fmt.Errorf("values类型Query，查询结果类型应为slice的指针，而您传入的第%d个并不是slice", i+1)
+			return 0, fmt.Errorf("sql '%s' error : values类型Query，查询结果类型应为slice的指针，而您传入的第%d个并不是slice", id, i+1)
 		}
 		values[i] = value
 		elementTypes[i] = value.Type().Elem()
@@ -39,7 +39,7 @@ func resultValues(o *osmBase, sql string, sqlParams []interface{}, containers []
 			}
 			columnsCount = len(columns)
 			if columnsCount != lenContainers {
-				return 0, fmt.Errorf("values类型Query，查询结果的长度与SQL的长度不一致")
+				return 0, fmt.Errorf("sql '%s' error : values类型Query，查询结果的长度与SQL的长度不一致", id)
 			}
 		}
 		objs := make([]reflect.Value, lenContainers)

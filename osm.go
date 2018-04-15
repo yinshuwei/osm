@@ -155,7 +155,7 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 				osm.sqlMappersMap[sm.id] = sm
 			}
 		} else {
-			err = fmt.Errorf("read sqlMappers %s", err.Error())
+			err = fmt.Errorf("read sqlMappers error : %s", err.Error())
 		}
 	}
 
@@ -386,33 +386,33 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 		switch resultType {
 		case resultTypeStructs:
 			if len(containers) == 1 {
-				return resultStructs(o, sql, sqlParams, containers[0])
+				return resultStructs(o, id, sql, sqlParams, containers[0])
 			}
-			err = fmt.Errorf("resultTypeStructs ,len(containers) != 1")
+			err = fmt.Errorf("sql '%s' error : resultTypeStructs ,len(containers) != 1", id)
 		case resultTypeStruct:
 			if len(containers) == 1 {
-				return resultStruct(o, sql, sqlParams, containers[0])
+				return resultStruct(o, id, sql, sqlParams, containers[0])
 			}
-			err = fmt.Errorf("resultTypeStruct ,len(containers) != 1")
+			err = fmt.Errorf("sql '%s' error : resultTypeStruct ,len(containers) != 1", id)
 		case resultTypeValue:
 			if len(containers) > 0 {
-				return resultValue(o, sql, sqlParams, containers)
+				return resultValue(o, id, sql, sqlParams, containers)
 			}
-			err = fmt.Errorf("resultTypeValue ,len(containers) < 1")
+			err = fmt.Errorf("sql '%s' error : resultTypeValue ,len(containers) < 1", id)
 		case resultTypeValues:
 			if len(containers) > 0 {
-				return resultValues(o, sql, sqlParams, containers)
+				return resultValues(o, id, sql, sqlParams, containers)
 			}
-			err = fmt.Errorf("resultTypeValues ,len(containers) < 1")
+			err = fmt.Errorf("sql '%s' error : resultTypeValues ,len(containers) < 1", id)
 		case resultTypeKvs:
 			if len(containers) == 1 {
-				return resultKvs(o, sql, sqlParams, containers[0])
+				return resultKvs(o, id, sql, sqlParams, containers[0])
 			}
-			err = fmt.Errorf("resultTypeKvs ,len(containers) != 1")
+			err = fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 1", id)
 		}
 
 		if err == nil {
-			err = fmt.Errorf("sql resultTypeType no in ['value','struct','values','structs','kvs']")
+			err = fmt.Errorf("sql '%s' error : sql resultTypeType no in ['value','struct','values','structs','kvs']", id)
 		}
 		return 0, err
 	}
@@ -425,13 +425,13 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 	err = nil
 
 	if !ok {
-		err = fmt.Errorf("Select \"%s\" error ,id not fond ", id)
+		err = fmt.Errorf("sql '%s' error : id not found ", id)
 		return
 	}
 	resultType = sm.result
 
 	if sm.sqlType != sqlType {
-		err = fmt.Errorf("Select type Error")
+		err = fmt.Errorf("sql '%s' error : Select type Error", id)
 		return
 	}
 

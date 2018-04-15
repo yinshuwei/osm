@@ -6,17 +6,17 @@ import (
 )
 
 // resultStructs 数据库结果读入到struct切片中，struct可以是指针类型或非指针类型
-func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
+func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
 	// 获得反射后结果的指针(这里应该是一个切片的指针)
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
-		return 0, fmt.Errorf("structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是指针")
+		return 0, fmt.Errorf("sql '%s' error : structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是指针", id)
 	}
 
 	// 获得反射后结果内容(这里应该是一个切片)
 	value := reflect.Indirect(pointValue)
 	if value.Kind() != reflect.Slice {
-		return 0, fmt.Errorf("structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是切片")
+		return 0, fmt.Errorf("sql '%s' error : structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是切片", id)
 	}
 
 	// 切片元素类型(这里应该是struct的类型,也可以是struct的指针类型)
@@ -29,7 +29,7 @@ func resultStructs(o *osmBase, sql string, sqlParams []interface{}, container in
 	}
 	// 无论如何structType都将成为struct的类型,如果不是,程序走不下去了
 	if structType.Kind() != reflect.Struct {
-		return 0, fmt.Errorf("structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是struct")
+		return 0, fmt.Errorf("sql '%s' error : structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是struct", id)
 	}
 
 	var rowsCount int64                               // 读取的行数，用于返回
