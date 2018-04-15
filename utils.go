@@ -86,6 +86,7 @@ func timeFormat(t time.Time, format string) string {
 // }
 
 var commonInitialisms = map[string][]byte{
+	"Id":    []byte("ID"),
 	"Acl":   []byte("ACL"),
 	"Api":   []byte("API"),
 	"Ascii": []byte("ASCII"),
@@ -138,15 +139,10 @@ func toGoNames(name string) (string, string) {
 		d := name[i]
 		if d == '_' {
 			lastWord := string(data[firstPoint:point])
-			if lastWord == "Id" {
-				data[firstPoint+1] = 'D'
-				dataSpecial[firstPoint+1] = 'D'
-			} else {
-				word, ok := commonInitialisms[lastWord]
-				if ok {
-					for j, b := range word {
-						dataSpecial[firstPoint+j] = b
-					}
+			word, ok := commonInitialisms[lastWord]
+			if ok {
+				for j, b := range word {
+					dataSpecial[firstPoint+j] = b
 				}
 			}
 			isFirst = true
@@ -168,18 +164,12 @@ func toGoNames(name string) (string, string) {
 		}
 	}
 	lastWord := string(data[firstPoint:point])
-	if lastWord == "Id" {
-		data[firstPoint+1] = 'D'
-		dataSpecial[firstPoint+1] = 'D'
-	} else {
-		word, ok := commonInitialisms[lastWord]
-		if ok {
-			for j, b := range word {
-				dataSpecial[firstPoint+j] = b
-			}
+	word, ok := commonInitialisms[lastWord]
+	if ok {
+		for j, b := range word {
+			dataSpecial[firstPoint+j] = b
 		}
 	}
-
 	return string(data[:point]), string(dataSpecial[:point])
 }
 
