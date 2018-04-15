@@ -86,7 +86,6 @@ func timeFormat(t time.Time, format string) string {
 // }
 
 var commonInitialisms = map[string][]byte{
-	"Id":    []byte("ID"),
 	"Acl":   []byte("ACL"),
 	"Api":   []byte("API"),
 	"Ascii": []byte("ASCII"),
@@ -98,6 +97,7 @@ var commonInitialisms = map[string][]byte{
 	"Html":  []byte("HTML"),
 	"Http":  []byte("HTTP"),
 	"Https": []byte("HTTPS"),
+	"Id":    []byte("ID"),
 	"Ip":    []byte("IP"),
 	"Json":  []byte("JSON"),
 	"Lhs":   []byte("LHS"),
