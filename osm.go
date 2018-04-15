@@ -29,8 +29,8 @@ import (
 )
 
 const (
-	dbtypeMysql    = 0
-	dbtypePostgres = 1
+	dbTypeMysql    = 0
+	dbTypePostgres = 1
 )
 
 var (
@@ -107,9 +107,9 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 
 	switch driverName {
 	case "postgres":
-		osm.dbType = dbtypePostgres
+		osm.dbType = dbTypePostgres
 	default:
-		osm.dbType = dbtypeMysql
+		osm.dbType = dbTypeMysql
 	}
 	osm.db = db
 	osm.sqlMappersMap = make(map[string]*sqlMapper)
@@ -345,7 +345,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 	defer stmt.Close()
 
 	var insertID int64
-	if o.dbType == dbtypeMysql {
+	if o.dbType == dbTypeMysql {
 		insertID, err = result.LastInsertId()
 		if err != nil {
 			logger.Println(err)
@@ -470,7 +470,7 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 
 			ei := strings.Index(sqlTemp, "}")
 			if ei != -1 {
-				if o.dbType == dbtypePostgres {
+				if o.dbType == dbTypePostgres {
 					sqls = append(sqls, fmt.Sprintf("$%d", signIndex))
 					signIndex++
 				} else {
