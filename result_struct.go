@@ -22,13 +22,13 @@ func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container
 
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 	}
 	defer rows.Close()
 	if rows.Next() {
 		columns, err := rows.Columns()
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
 		columnsCount := len(columns)
 		elementTypes := make([]reflect.Type, columnsCount)
@@ -55,7 +55,7 @@ func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container
 		}
 		err = scanRow(rows, isPtrs, elementTypes, values)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
 		if isStructPtr {
 			value.Set(valueElem.Addr())

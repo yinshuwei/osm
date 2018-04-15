@@ -46,7 +46,7 @@ func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, containe
 	// 使用提供的SQL，从数据库读取数据
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 	}
 	defer rows.Close()
 
@@ -58,7 +58,7 @@ func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, containe
 		if isPtrs == nil {
 			columns, err := rows.Columns()
 			if err != nil {
-				return 0, err
+				return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 			}
 			columnsCount = len(columns)
 			// 定义
@@ -92,7 +92,7 @@ func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, containe
 		// 读取一行数据到成员实例切片中
 		err = scanRow(rows, isPtrs, elementTypes, values)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
 		// struct实列装进结果切片
 		if isStructPtr {

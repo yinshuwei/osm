@@ -26,7 +26,7 @@ func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, container
 
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 	}
 	defer rows.Close()
 	var rowsCount int64
@@ -35,7 +35,7 @@ func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, container
 		if rowsCount == 0 {
 			columns, err := rows.Columns()
 			if err != nil {
-				return 0, err
+				return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 			}
 			columnsCount = len(columns)
 			if columnsCount != lenContainers {
@@ -48,7 +48,7 @@ func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, container
 		}
 		err = scanRow(rows, isPtrs, elementTypes, objs)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
 		for i := 0; i < lenContainers; i++ {
 			values[i].Set(reflect.Append(values[i], objs[i]))

@@ -22,7 +22,7 @@ func resultKvs(o *osmBase, id, sql string, sqlParams []interface{}, container in
 	isPtrs := []bool{elementTypes[0].Kind() == reflect.Ptr, elementTypes[1].Kind() == reflect.Ptr}
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 	}
 	defer rows.Close()
 	var rowsCount int64
@@ -30,7 +30,7 @@ func resultKvs(o *osmBase, id, sql string, sqlParams []interface{}, container in
 		if rowsCount == 0 {
 			columns, err := rows.Columns()
 			if err != nil {
-				return 0, err
+				return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 			}
 			if len(columns) != 2 {
 				return 0, fmt.Errorf("sql '%s' error : kvs类型Query，SQL查询的结果需要为2列", id)
@@ -42,7 +42,7 @@ func resultKvs(o *osmBase, id, sql string, sqlParams []interface{}, container in
 		}
 		err = scanRow(rows, isPtrs, elementTypes, objs)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
 		value.SetMapIndex(objs[0], objs[1])
 		rowsCount++
