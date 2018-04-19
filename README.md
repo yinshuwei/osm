@@ -121,3 +121,140 @@ example.go
 		}
 	}
 
+
+## 查询结果类型
+
+
+* value 查出的结果为单行,并存入不定长的变量上(...)
+	
+	xml
+
+		<select id="selectResUserValue" result="value">
+			SELECT id, email, head_image_url FROM res_user WHERE email=#{Email};
+		</select>
+
+	go
+
+		user := ResUser{Email: "test@foxmail.com"}
+		var id int64
+		var email, headImageURL string
+		o.Select("selectResUserValue", user)(&id, &email, &headImageURL)
+
+		log.Println(id, email, headImageURL)
+
+* values 查出的结果为多行,并存入不定长的变量上(...，每个都为array，每个array长度都与结果集行数相同)
+	
+	xml
+
+		<select id="selectResUserValues" result="values">
+			SELECT id,email,head_image_url FROM res_user WHERE city=#{City} order by id;
+		</select>
+
+	go
+
+		user := ResUser{City: "上海"}
+		var ids []int64
+		var emails, headImageUrls []string
+		o.Select("selectResUserValues", user)(&ids, &emails, &headImageUrls)
+
+		log.Println(ids, emails, headImageUrls)
+
+* struct  查出的结果为单行,并存入struct
+	
+	xml
+
+		<select id="selectResUser" result="struct">
+			SELECT id, email, head_image_url FROM res_user WHERE email=#{Email};
+		</select>
+
+	go
+
+		user := ResUser{Email: "test@foxmail.com"}
+		var result ResUser
+		o.Select("selectResUser", user)(&result)
+
+		log.Printf("%#v", result)
+
+* structs 查出的结果为多行,并存入struct array
+	
+	xml
+
+		<select id="selectResUsers" result="structs">
+			SELECT id,email,head_image_url FROM res_user WHERE city=#{City} order by id;
+		</select>
+
+	go
+
+		user := ResUser{City: "上海"}
+		var results []*ResUser // 或var results []ResUser
+		o.Select("selectResUsers", user)(&results)
+		log.Printf("%#v", results)
+
+* kvs 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
+	
+	xml
+
+		<select id="selectResUserKvs" result="kvs">
+			SELECT id,email FROM res_user WHERE city=#{City} order by id;
+		</select>
+
+	go
+
+		user := ResUser{City: "上海"}
+	    var idEmailMap map[int64]string
+		o.Select("selectResUserKvs", user)(&idEmailMap)
+		log.Println(idEmailMap)
+
+
+## struct与SQL列对应关系
+
+* 正常的转换过程
+
+    用"_"分隔 （例：XXX_YYY -> XXX,YYY）
+
+	每个部分全部转为首字大写其余字符小写 （例：XXX,YYY -> Xxx,Yyy）
+	
+	拼接（例：Xxx,Yyy -> XxxYyy）
+
+* 常见缩写单词，下面这些单词两种形式都可以，struct上可以任选其一。
+	
+	比如"UserId"和"UserID"可以正常对应到"user_id"列上。但是同一个struct中不可以既有"UserId"成员又有"UserID"成员，如查同时存在只会有一个成员会被赋值。
+    
+		Acl  或   ACL 
+		Api  或   API 
+		Ascii  或 ASCII 
+		Cpu  或   CPU 
+		Css  或   CSS 
+		Dns  或   DNS 
+		Eof  或   EOF 
+		Guid  或  GUID 
+		Html  或  HTML 
+		Http  或  HTTP 
+		Https  或 HTTPS 
+		Id  或    ID 
+		Ip  或    IP 
+		Json  或  JSON 
+		Lhs  或   LHS 
+		Qps  或   QPS 
+		Ram  或   RAM 
+		Rhs  或   RHS 
+		Rpc  或   RPC 
+		Sla  或   SLA 
+		Smtp  或  SMTP 
+		Sql  或   SQL 
+		Ssh  或   SSH 
+		Tcp  或   TCP 
+		Tls  或   TLS 
+		Ttl  或   TTL 
+		Udp  或   UDP 
+		Ui  或    UI 
+		Uid  或   UID 
+		Uuid  或  UUID 
+		Uri  或   URI 
+		Url  或   URL 
+		Utf8  或  UTF8 
+		Vm  或    VM 
+		Xml  或   XML 
+		Xmpp  或  XMPP 
+		Xsrf  或  XSRF 
+		Xss  或   XSS 
