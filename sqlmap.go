@@ -2,7 +2,6 @@ package osm
 
 import (
 	"encoding/xml"
-	"fmt"
 	"os"
 	"strings"
 	"text/template"
@@ -103,6 +102,7 @@ func newMapper(stmt stmtXML, sqlType int) (sqlMapperObj *sqlMapper) {
 }
 
 func markSQLError(sql string, index int) string {
-	result := fmt.Sprintf("%s[****ERROR****]->%s", sql[0:index], sql[index:])
+	// result := fmt.Sprintf("%s[****ERROR****]->%s", sql[0:index], sql[index:])
+	result := strings.Join([]string{sql[0:index], "[****ERROR****]->", sql[index:]}, "")
 	return result
 }

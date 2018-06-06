@@ -24,6 +24,7 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -471,7 +472,9 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 			ei := strings.Index(sqlTemp, "}")
 			if ei != -1 {
 				if o.dbType == dbTypePostgres {
-					sqls = append(sqls, fmt.Sprintf("$%d", signIndex))
+					// sqls = append(sqls, fmt.Sprintf("$%d", signIndex))
+					sqls = append(sqls, "$")
+					sqls = append(sqls, strconv.Itoa(signIndex))
 					signIndex++
 				} else {
 					sqls = append(sqls, "?")
