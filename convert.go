@@ -118,7 +118,6 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		s := asString(src)
-		log.Println(s)
 		i64, err := strconv.ParseInt(s, 10, destType.Bits())
 		if err != nil {
 			log.Println(err)
@@ -152,7 +151,6 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 			case nil:
 				return nil
 			}
-			log.Println(str)
 			if str != "" {
 				var t time.Time
 				var err error
