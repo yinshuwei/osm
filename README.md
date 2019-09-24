@@ -218,7 +218,7 @@ example.go
 
 * 常见缩写单词，下面这些单词两种形式都可以，struct上可以任选其一。
 	
-	比如"UserId"和"UserID"可以正常对应到"user_id"列上。但是同一个struct中不可以既有"UserId"成员又有"UserID"成员，如查同时存在只会有一个成员会被赋值。
+	比如"UserId"和"UserID"可以正常对应到"user_id"列上。但是同一个struct中不可以既有"UserId"成员又有"UserID"成员，如果同时存在只会有一个成员会被赋值。
     
 		Acl  或   ACL 
 		Api  或   API 
