@@ -548,7 +548,9 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 			kind == reflect.Complex64 ||
 			kind == reflect.Complex128 ||
 			kind == reflect.String:
-			sqlParams = append(sqlParams, param)
+			for range paramNames {
+				sqlParams = append(sqlParams, param)
+			}
 		default:
 		}
 	} else {
