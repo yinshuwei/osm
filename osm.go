@@ -420,8 +420,52 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 	return callback
 }
 
+type sqlFragment struct {
+	content     string
+	paramValue  interface{}
+	paramValues []interface{}
+	isParam     bool
+	isIn        bool
+}
+
+func setDataToParamName(paramName *sqlFragment, v reflect.Value) {
+	if paramName.isIn {
+		kind := v.Kind()
+		if kind == reflect.Array || kind == reflect.Slice {
+			for j := 0; j < v.Len(); j++ {
+				vv := v.Index(j)
+				if vv.Type().String() == "time.Time" {
+					paramName.paramValues = append(paramName.paramValues, timeFormat(vv.Interface().(time.Time), formatDateTime))
+				} else {
+					paramName.paramValues = append(paramName.paramValues, vv.Interface())
+				}
+			}
+		} else {
+			if v.Type().String() == "time.Time" {
+				paramName.paramValues = append(paramName.paramValues, timeFormat(v.Interface().(time.Time), formatDateTime))
+			} else {
+				paramName.paramValues = append(paramName.paramValues, v.Interface())
+			}
+		}
+	} else {
+		if v.Type().String() == "time.Time" {
+			paramName.paramValue = timeFormat(v.Interface().(time.Time), formatDateTime)
+		} else {
+			paramName.paramValue = v.Interface()
+		}
+	}
+}
+
+func sqlIsIn(lastSQLText string) bool {
+	lastSQLText = strings.TrimSpace(lastSQLText)
+	lenLastSQLText := len(lastSQLText)
+	if lenLastSQLText > 2 {
+		return strings.ToUpper(lastSQLText[lenLastSQLText-2:]) == "IN"
+	}
+	return false
+}
+
 func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (sql string, sqlParams []interface{}, resultType string, err error) {
-	sqlParams = make([]interface{}, 0)
 	sm, ok := o.sqlMappersMap[id]
 	err = nil
 
@@ -446,8 +490,8 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		}
 
 		//sql start
-		sqls := []string{}
-		paramNames := []string{}
+		sqls := []*sqlFragment{}
+		paramNames := []*sqlFragment{}
 		var buf bytes.Buffer
 
 		err = sm.sqlTemplate.Execute(&buf, param)
@@ -455,31 +499,26 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 			logger.Println(err)
 		}
 		sqlOrg := buf.String()
-
-		if ShowSQL {
-			go logger.Printf(`id:"%s", sql:"%s", params:"%+v"`, id, sqlOrg, param)
-		}
-
 		sqlTemp := sqlOrg
 		errorIndex := 0
-		signIndex := 1
 		for strings.Contains(sqlTemp, "#{") {
 			si := strings.Index(sqlTemp, "#{")
-			sqls = append(sqls, sqlTemp[0:si])
+			lastSQLText := sqlTemp[0:si]
+			sqls = append(sqls, &sqlFragment{
+				content: lastSQLText,
+			})
 			sqlTemp = sqlTemp[si+2:]
 			errorIndex += si + 2
 
 			ei := strings.Index(sqlTemp, "}")
 			if ei != -1 {
-				if o.dbType == dbTypePostgres {
-					// sqls = append(sqls, fmt.Sprintf("$%d", signIndex))
-					sqls = append(sqls, "$")
-					sqls = append(sqls, strconv.Itoa(signIndex))
-					signIndex++
-				} else {
-					sqls = append(sqls, "?")
+				pni := &sqlFragment{
+					content: sqlTemp[0:ei],
+					isParam: true,
+					isIn:    sqlIsIn(lastSQLText),
 				}
-				paramNames = append(paramNames, sqlTemp[0:ei])
+				sqls = append(sqls, pni)
+				paramNames = append(paramNames, pni)
 				sqlTemp = sqlTemp[ei+1:]
 				errorIndex += ei + 1
 			} else {
@@ -487,47 +526,40 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 				return
 			}
 		}
-		sqls = append(sqls, sqlTemp)
+		sqls = append(sqls, &sqlFragment{
+			content: sqlTemp,
+		})
 		//sql end
-
-		sql = strings.Join(sqls, "")
 
 		v := reflect.ValueOf(param)
 
 		kind := v.Kind()
 		switch {
 		case kind == reflect.Array || kind == reflect.Slice:
-			for i := 0; i < v.Len() && i < len(paramNames); i++ {
-				vv := v.Index(i)
-				sqlParams = append(sqlParams, vv.Interface())
+			if len(paramNames) == 1 && paramNames[0].isIn {
+				setDataToParamName(paramNames[0], v)
+			} else {
+				for i := 0; i < v.Len() && i < len(paramNames); i++ {
+					setDataToParamName(paramNames[i], v.Index(i))
+				}
 			}
 		case kind == reflect.Map:
 			for _, paramName := range paramNames {
-				vv := v.MapIndex(reflect.ValueOf(paramName))
+				vv := v.MapIndex(reflect.ValueOf(paramName.content))
 				if vv.IsValid() {
-					if vv.Type().String() == "time.Time" {
-						sqlParams = append(sqlParams, timeFormat(vv.Interface().(time.Time), formatDateTime))
-					} else {
-						sqlParams = append(sqlParams, vv.Interface())
-					}
+					setDataToParamName(paramName, vv)
 				} else {
-					sqlParams = append(sqlParams, nil)
-					err = fmt.Errorf("sql '%s' error : '%s' no exist", sm.id, paramName)
+					err = fmt.Errorf("sql '%s' error : '%s' no exist", sm.id, paramName.content)
 					return
 				}
 			}
 		case kind == reflect.Struct:
 			for _, paramName := range paramNames {
-				vv := v.FieldByName(paramName)
+				vv := v.FieldByName(paramName.content)
 				if vv.IsValid() {
-					if vv.Type().String() == "time.Time" {
-						sqlParams = append(sqlParams, timeFormat(vv.Interface().(time.Time), formatDateTime))
-					} else {
-						sqlParams = append(sqlParams, vv.Interface())
-					}
+					setDataToParamName(paramName, vv)
 				} else {
-					sqlParams = append(sqlParams, nil)
-					err = fmt.Errorf("sql '%s' error : '%s' no exist", sm.id, paramName)
+					err = fmt.Errorf("sql '%s' error : '%s' no exist", sm.id, paramName.content)
 					return
 				}
 			}
@@ -548,10 +580,48 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 			kind == reflect.Complex64 ||
 			kind == reflect.Complex128 ||
 			kind == reflect.String:
-			for range paramNames {
-				sqlParams = append(sqlParams, param)
+			for _, paramName := range paramNames {
+				setDataToParamName(paramName, v)
 			}
 		default:
+		}
+
+		var sqlTexts []string
+		signIndex := 1
+		for _, sql := range sqls {
+			if sql.isParam {
+				if sql.isIn {
+					sqlTexts = append(sqlTexts, "(")
+					for index, pv := range sql.paramValues {
+						if index > 0 {
+							sqlTexts = append(sqlTexts, ",")
+						}
+						if o.dbType == dbTypeMysql {
+							sqlTexts = append(sqlTexts, "?")
+						} else {
+							sqlTexts = append(sqlTexts, "$"+strconv.Itoa(signIndex))
+							signIndex++
+						}
+						sqlParams = append(sqlParams, pv)
+					}
+					sqlTexts = append(sqlTexts, ")")
+				} else {
+					if o.dbType == dbTypeMysql {
+						sqlTexts = append(sqlTexts, "?")
+					} else {
+						sqlTexts = append(sqlTexts, "$"+strconv.Itoa(signIndex))
+						signIndex++
+					}
+					sqlParams = append(sqlParams, sql.paramValue)
+				}
+			} else {
+				sqlTexts = append(sqlTexts, sql.content)
+			}
+		}
+
+		sql = strings.Join(sqlTexts, "")
+		if ShowSQL {
+			go logger.Printf(`id:"%s", sql:"%s", dbSQL:"%s" , params:"%+v"`, id, sqlOrg, sql, param)
 		}
 	} else {
 		sql = sm.sql
