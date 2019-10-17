@@ -502,7 +502,7 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		sqlOrg := buf.String()
 		defer func() {
 			if ShowSQL {
-				go logger.Printf(`id:"%s", sql:"%s", dbSQL:"%s" , params:"%+v"`, id, sqlOrg, sql, param)
+				go logger.Printf(`id:"%s", sql:"%s", params:"%+v", dbSQL:"%s", dbParams:"%+v"`, id, sqlOrg, param, sql, sqlParams)
 			}
 		}()
 		sqlTemp := sqlOrg
