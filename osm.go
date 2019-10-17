@@ -519,7 +519,7 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 			ei := strings.Index(sqlTemp, "}")
 			if ei != -1 {
 				pni := &sqlFragment{
-					content: sqlTemp[0:ei],
+					content: strings.TrimSpace(sqlTemp[0:ei]),
 					isParam: true,
 					isIn:    sqlIsIn(lastSQLText),
 				}
@@ -546,7 +546,10 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 				setDataToParamName(paramNames[0], v)
 			} else {
 				for i := 0; i < v.Len() && i < len(paramNames); i++ {
-					setDataToParamName(paramNames[i], v.Index(i))
+					vv := v.Index(i)
+					if vv.IsValid() {
+						setDataToParamName(paramNames[i], v.Index(i))
+					}
 				}
 			}
 		case kind == reflect.Map:
@@ -555,17 +558,22 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 				if vv.IsValid() {
 					setDataToParamName(paramName, vv)
 				} else {
-					err = fmt.Errorf("sql '%s' error : '%s' no exist", sm.id, paramName.content)
+					err = fmt.Errorf("sql '%s' error : Key '%s' no exist", sm.id, paramName.content)
 					return
 				}
 			}
 		case kind == reflect.Struct:
 			for _, paramName := range paramNames {
+				firstChar := paramName.content[0]
+				if firstChar < 'A' || firstChar > 'Z' {
+					err = fmt.Errorf("sql '%s' error : Field '%s' unexported", sm.id, paramName.content)
+					return
+				}
 				vv := v.FieldByName(paramName.content)
 				if vv.IsValid() {
 					setDataToParamName(paramName, vv)
 				} else {
-					err = fmt.Errorf("sql '%s' error : '%s' no exist", sm.id, paramName.content)
+					err = fmt.Errorf("sql '%s' error : Field '%s' no exist", sm.id, paramName.content)
 					return
 				}
 			}
