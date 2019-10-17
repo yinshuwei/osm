@@ -460,8 +460,8 @@ func setDataToParamName(paramName *sqlFragment, v reflect.Value) {
 func sqlIsIn(lastSQLText string) bool {
 	lastSQLText = strings.TrimSpace(lastSQLText)
 	lenLastSQLText := len(lastSQLText)
-	if lenLastSQLText > 2 {
-		return strings.ToUpper(lastSQLText[lenLastSQLText-2:]) == "IN"
+	if lenLastSQLText > 3 {
+		return strings.EqualFold(lastSQLText[lenLastSQLText-3:], " IN")
 	}
 	return false
 }
