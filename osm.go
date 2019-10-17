@@ -430,6 +430,7 @@ type sqlFragment struct {
 
 func setDataToParamName(paramName *sqlFragment, v reflect.Value) {
 	if paramName.isIn {
+		v = reflect.ValueOf(v.Interface())
 		kind := v.Kind()
 		if kind == reflect.Array || kind == reflect.Slice {
 			for j := 0; j < v.Len(); j++ {
@@ -499,6 +500,11 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 			logger.Println(err)
 		}
 		sqlOrg := buf.String()
+		defer func() {
+			if ShowSQL {
+				go logger.Printf(`id:"%s", sql:"%s", dbSQL:"%s" , params:"%+v"`, id, sqlOrg, sql, param)
+			}
+		}()
 		sqlTemp := sqlOrg
 		errorIndex := 0
 		for strings.Contains(sqlTemp, "#{") {
@@ -620,9 +626,6 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		}
 
 		sql = strings.Join(sqlTexts, "")
-		if ShowSQL {
-			go logger.Printf(`id:"%s", sql:"%s", dbSQL:"%s" , params:"%+v"`, id, sqlOrg, sql, param)
-		}
 	} else {
 		sql = sm.sql
 		if ShowSQL {
