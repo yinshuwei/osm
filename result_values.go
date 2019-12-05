@@ -21,7 +21,15 @@ func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, container
 		}
 		values[i] = value
 		elementTypes[i] = value.Type().Elem()
-		isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
+		kind := elementTypes[i].Kind()
+		isPrt := kind == reflect.Ptr
+		isPtrs[i] = isPrt
+		if isPrt {
+			kind = elementTypes[i].Elem().Kind()
+		}
+		if !isValueKind(kind) {
+			return 0, fmt.Errorf("sql '%s' error : value类型Query，查询结果类型应为Bool,Int,Int8,Int16,Int32,Int64,Uint,Uint8,Uint16,Uint32,Uint64,Uintptr,Float32,Float64,Complex64,Complex128,String,Time，而您传入的第%d个并不是", id, i+1)
+		}
 	}
 
 	rows, err := o.db.Query(sql, sqlParams...)

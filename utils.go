@@ -238,5 +238,6 @@ func isValueKind(kind reflect.Kind) bool {
 		kind == reflect.Float64 ||
 		kind == reflect.Complex64 ||
 		kind == reflect.Complex128 ||
-		kind == reflect.String
+		kind == reflect.String ||
+		kind == reflect.Struct
 }
