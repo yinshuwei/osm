@@ -43,7 +43,7 @@ http://godoc.org/github.com/yinshuwei/osm
 	  PRIMARY KEY (`id`)
 	) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='user table';
 
-### 直接执行SQL(不支持go template解析)示例
+* 直接执行SQL(不支持go template解析)示例
 
 example_sql.go
 	
@@ -105,7 +105,7 @@ example_sql.go
 
 
 
-### 执行template中的SQL(支持go template解析)示例
+* 执行template中的SQL(支持go template解析)示例
 
 sql template文件test.xml
 
