@@ -43,6 +43,70 @@ http://godoc.org/github.com/yinshuwei/osm
 	  PRIMARY KEY (`id`)
 	) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='user table';
 
+### 直接执行SQL(不支持go template解析)示例
+
+example_sql.go
+	
+	package main
+
+	import (
+		"fmt"
+		"time"
+
+		_ "github.com/go-sql-driver/mysql"
+		"github.com/yinshuwei/osm"
+	)
+
+	// User 用户Model
+	type User struct {
+		ID         int64
+		Email      string
+		Nickname   string
+		CreateTime time.Time
+	}
+
+	func main() {
+		o, err := osm.New("mysql", "root:123456@/test?charset=utf8", []string{})
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		//添加
+		user := User{
+			Email:      "test@foxmail.com",
+			Nickname:   "haha",
+			CreateTime: time.Now(),
+		}
+		sql := "INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});"
+		fmt.Println(o.InsertBySQL(sql, user))
+
+		//查询
+		user = User{
+			Email: "test@foxmail.com",
+		}
+		var results []User
+		sql = "SELECT id,email,nickname,create_time FROM user WHERE email=#{Email};"
+		_, err = o.SelectStructs(sql, user)(&results)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		for _, u := range results {
+			fmt.Println(u)
+		}
+
+		//删除
+		fmt.Println(o.DeleteBySQL("DELETE FROM user WHERE email=#{Email}", user))
+
+		err = o.Close()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	}
+
+
+
+### 执行template中的SQL(支持go template解析)示例
+
 sql template文件test.xml
 
 	<?xml version="1.0" encoding="utf-8"?>
@@ -73,27 +137,29 @@ sql template文件test.xml
 example.go
 	
 	package main
-	
+
 	import (
 		"fmt"
+		"time"
+
 		_ "github.com/go-sql-driver/mysql"
 		"github.com/yinshuwei/osm"
-		"time"
 	)
-	
+
+	// User 用户model
 	type User struct {
-		Id         int64
+		ID         int64
 		Email      string
 		Nickname   string
 		CreateTime time.Time
 	}
-	
+
 	func main() {
 		o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-	
+
 		//添加
 		user := User{
 			Email:      "test@foxmail.com",
@@ -101,7 +167,7 @@ example.go
 			CreateTime: time.Now(),
 		}
 		fmt.Println(o.Insert("insertUser", user))
-	
+
 		//动态查询
 		user = User{
 			Email: "test@foxmail.com",
@@ -111,15 +177,16 @@ example.go
 		for _, u := range results {
 			fmt.Println(u)
 		}
-	
+
 		//删除
 		fmt.Println(o.Delete("deleteUser", user))
-	
+
 		err = o.Close()
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 	}
+
 
 
 ## 查询结果类型
