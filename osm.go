@@ -235,7 +235,7 @@ func (o *Tx) Rollback() error {
 	return fmt.Errorf("tx no runing")
 }
 
-// Delete 执行删除sql
+// Delete 通过id在xml中找到删除sql并执行
 //
 //xml
 //  <osm>
@@ -264,7 +264,7 @@ func (o *osmBase) Delete(id string, params ...interface{}) (int64, error) {
 	return result.RowsAffected()
 }
 
-// Update 执行更新sql
+// Update 通过id在xml中找到更新sql并执行
 //
 //xml
 //  <osm>
@@ -293,7 +293,7 @@ func (o *osmBase) Update(id string, params ...interface{}) (int64, error) {
 	return result.RowsAffected()
 }
 
-// UpdateMulti 批量执行更新sql
+// UpdateMulti 批量通过id在xml中找到更新sql并执行
 //
 //xml
 //  <osm>
@@ -317,7 +317,7 @@ func (o *osmBase) UpdateMulti(id string, params ...interface{}) error {
 	return err
 }
 
-// Insert 执行添加sql
+// Insert 通过id在xml中找到添加sql并执行
 //
 //xml
 //  <osm>
@@ -357,7 +357,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 	return insertID, count, err
 }
 
-//执行查询sql
+//通过id在xml中找到查询sql并执行
 //
 //查询结果分为8种，分别是:
 //	"value"   : 查出的结果为单行,并存入不定长的变量上(...)，可以是指针，如var r1,r2 string、var r1,r2 *string

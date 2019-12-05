@@ -18,7 +18,11 @@ func resultValue(o *osmBase, id, sql string, sqlParams []interface{}, containers
 		value := reflect.Indirect(pointValue)
 		values[i] = value
 		elementTypes[i] = value.Type()
-		isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
+		kind := elementTypes[i].Kind()
+		isPtrs[i] = kind == reflect.Ptr
+		if !isValueKind(kind) {
+			return 0, fmt.Errorf("sql '%s' error : value类型Query，查询结果类型应为Bool,Int,Int8,Int16,Int32,Int64,Uint,Uint8,Uint16,Uint32,Uint64,Uintptr,Float32,Float64,Complex64,Complex128,String指针，而您传入的第%d个并不是", id, i+1)
+		}
 	}
 
 	rows, err := o.db.Query(sql, sqlParams...)
