@@ -1,11 +1,11 @@
 osm
 ===
 
-osm (Object Sql Mapping And Template) is an ORM tool written in Go. It is currently used in production environments and only supports mysql and postgresql (other databases have not been tested).
+osm(Object Sql Mapping And Template)是用go编写的ORM工具，目前已在生产环境中使用，只支持mysql和postgresql(其他数据库没有测试过)。
 
-In the past, the Java server was developed using MyBatis. Its sql mapping is very flexible. It separates sql, and the program completes all database operations through input and output.
+以前是使用MyBatis开发java服务端，它的sql mapping很灵活，把sql独立出来，程序通过输入与输出来完成所有的数据库操作。
 
-osm is a simple imitation of MyBatis. Of course, dynamic sql is generated using go and template packages, so the format of sql mapping is different from MyBatis. The format of sql xml is as follows:
+osm就是对MyBatis的简单模仿。当然动态sql的生成是使用go和template包，所以sql mapping的格式与MyBatis的不同。sql xml 格式如下：
 
     <?xml version="1.0" encoding="utf-8"?>
     <osm>
@@ -18,7 +18,7 @@ osm is a simple imitation of MyBatis. Of course, dynamic sql is generated using 
     </osm>
 
 
-## get osm
+## osm获取
 
     go get github.com/yinshuwei/osm
 
@@ -28,12 +28,12 @@ http://godoc.org/github.com/yinshuwei/osm
 
 ## Quickstart
 
-Create database
+创建数据库
     
     create database test;
     use test;
 
-Create `user` table
+创建user表
     
     CREATE TABLE `user` (
       `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -43,7 +43,7 @@ Create `user` table
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='user table';
 
-* Execute SQL directly (Go template parsing is not supported) Example
+* 直接执行SQL(不支持go template解析)示例
 
 example_sql.go
     
@@ -71,7 +71,7 @@ example_sql.go
             fmt.Println(err.Error())
         }
 
-        //add
+        //添加
         user := User{
             Email:      "test@foxmail.com",
             Nickname:   "haha",
@@ -80,7 +80,7 @@ example_sql.go
         sql := "INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});"
         fmt.Println(o.InsertBySQL(sql, user))
 
-        //query
+        //查询
         user = User{
             Email: "test@foxmail.com",
         }
@@ -94,7 +94,7 @@ example_sql.go
             fmt.Println(u)
         }
 
-        //delete
+        //删除
         fmt.Println(o.DeleteBySQL("DELETE FROM user WHERE email=#{Email}", user))
 
         err = o.Close()
@@ -105,9 +105,9 @@ example_sql.go
 
 
 
-* Example of executing SQL in template (support go template parsing)
+* 执行template中的SQL(支持go template解析)示例
 
-sql template file test.xml
+sql template文件test.xml
 
     <?xml version="1.0" encoding="utf-8"?>
     <osm>
@@ -146,7 +146,7 @@ example.go
         "github.com/yinshuwei/osm"
     )
 
-    // User model
+    // User 用户model
     type User struct {
         ID         int64
         Email      string
@@ -160,7 +160,7 @@ example.go
             fmt.Println(err.Error())
         }
 
-        //add
+        //添加
         user := User{
             Email:      "test@foxmail.com",
             Nickname:   "haha",
@@ -168,7 +168,7 @@ example.go
         }
         fmt.Println(o.Insert("insertUser", user))
 
-        //query with template
+        //动态查询
         user = User{
             Email: "test@foxmail.com",
         }
@@ -178,7 +178,7 @@ example.go
             fmt.Println(u)
         }
 
-        //delete
+        //删除
         fmt.Println(o.Delete("deleteUser", user))
 
         err = o.Close()
@@ -189,10 +189,10 @@ example.go
 
 
 
-## Query result type
+## 查询结果类型
 
 
-* value : a single line and stored in a variable of variable length (...)
+* value 查出的结果为单行,并存入不定长的变量上(...)
     
     xml
 
@@ -209,7 +209,7 @@ example.go
 
         log.Println(id, email, headImageURL)
 
-* values : multiple rows and stored in variables of variable length (..., each is an array, and each array is the same length as the result set rows)
+* values 查出的结果为多行,并存入不定长的变量上(...，每个都为array，每个array长度都与结果集行数相同)
     
     xml
 
@@ -219,14 +219,14 @@ example.go
 
     go
 
-        user := ResUser{City: "Shanghai"}
+        user := ResUser{City: "上海"}
         var ids []int64
         var emails, headImageUrls []string
         o.Select("selectResUserValues", user)(&ids, &emails, &headImageUrls)
 
         log.Println(ids, emails, headImageUrls)
 
-* struct : a single line and stored in struct
+* struct  查出的结果为单行,并存入struct
     
     xml
 
@@ -242,7 +242,7 @@ example.go
 
         log.Printf("%#v", result)
 
-* structs : multiple lines, and stored in the struct array
+* structs 查出的结果为多行,并存入struct array
     
     xml
 
@@ -252,12 +252,12 @@ example.go
 
     go
 
-        user := ResUser{City: "Shanghai"}
-        var results []*ResUser // or var results []ResUser
+        user := ResUser{City: "上海"}
+        var results []*ResUser // 或var results []ResUser
         o.Select("selectResUsers", user)(&results)
         log.Printf("%#v", results)
 
-* kvs : multiple rows, each row has two fields, the former is the key, the latter is the value, and stored in the map (two columns)
+* kvs 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
     
     xml
 
@@ -267,61 +267,61 @@ example.go
 
     go
 
-        user := ResUser{City: "Shanghai"}
+        user := ResUser{City: "上海"}
         var idEmailMap map[int64]string
         o.Select("selectResUserKvs", user)(&idEmailMap)
         log.Println(idEmailMap)
 
 
-## Correspondence between struct and SQL column
+## struct与SQL列对应关系
 
-* Normal conversion process
+* 正常的转换过程
 
-    Separated by "_" (example: XXX_YYY-> XXX, YYY)
+    用"_"分隔 （例：XXX_YYY -> XXX,YYY）
 
-    Each part is converted to the first word uppercase and the rest of the characters lowercase (example: XXX, YYY-> Xxx, Yyy)
+    每个部分全部转为首字大写其余字符小写 （例：XXX,YYY -> Xxx,Yyy）
     
-    Splicing (example: Xxx, Yyy-> XxxYyy)
+    拼接（例：Xxx,Yyy -> XxxYyy）
 
-* Common abbreviated words, these two words can be used in both forms, you can choose one on the struct.
+* 常见缩写单词，下面这些单词两种形式都可以，struct上可以任选其一。
     
-    For example, "UserId" and "UserID" can normally correspond to the "user_id" column. However, it is not possible to have both "UserId" and "UserID" members in the same struct. If they exist at the same time, only one member will be assigned.
+    比如"UserId"和"UserID"可以正常对应到"user_id"列上。但是同一个struct中不可以既有"UserId"成员又有"UserID"成员，如果同时存在只会有一个成员会被赋值。
     
-        Acl  or   ACL 
-        Api  or   API 
-        Ascii  or ASCII 
-        Cpu  or   CPU 
-        Css  or   CSS 
-        Dns  or   DNS 
-        Eof  or   EOF 
-        Guid  or  GUID 
-        Html  or  HTML 
-        Http  or  HTTP 
-        Https  or HTTPS 
-        Id  or    ID 
-        Ip  or    IP 
-        Json  or  JSON 
-        Lhs  or   LHS 
-        Qps  or   QPS 
-        Ram  or   RAM 
-        Rhs  or   RHS 
-        Rpc  or   RPC 
-        Sla  or   SLA 
-        Smtp  or  SMTP 
-        Sql  or   SQL 
-        Ssh  or   SSH 
-        Tcp  or   TCP 
-        Tls  or   TLS 
-        Ttl  or   TTL 
-        Udp  or   UDP 
-        Ui  or    UI 
-        Uid  or   UID 
-        Uuid  or  UUID 
-        Uri  or   URI 
-        Url  or   URL 
-        Utf8  or  UTF8 
-        Vm  or    VM 
-        Xml  or   XML 
-        Xmpp  or  XMPP 
-        Xsrf  or  XSRF 
-        Xss  or   XSS 
+        Acl  或   ACL 
+        Api  或   API 
+        Ascii  或 ASCII 
+        Cpu  或   CPU 
+        Css  或   CSS 
+        Dns  或   DNS 
+        Eof  或   EOF 
+        Guid  或  GUID 
+        Html  或  HTML 
+        Http  或  HTTP 
+        Https  或 HTTPS 
+        Id  或    ID 
+        Ip  或    IP 
+        Json  或  JSON 
+        Lhs  或   LHS 
+        Qps  或   QPS 
+        Ram  或   RAM 
+        Rhs  或   RHS 
+        Rpc  或   RPC 
+        Sla  或   SLA 
+        Smtp  或  SMTP 
+        Sql  或   SQL 
+        Ssh  或   SSH 
+        Tcp  或   TCP 
+        Tls  或   TLS 
+        Ttl  或   TTL 
+        Udp  或   UDP 
+        Ui  或    UI 
+        Uid  或   UID 
+        Uuid  或  UUID 
+        Uri  或   URI 
+        Url  或   URL 
+        Utf8  或  UTF8 
+        Vm  或    VM 
+        Xml  或   XML 
+        Xmpp  或  XMPP 
+        Xsrf  或  XSRF 
+        Xss  或   XSS 
