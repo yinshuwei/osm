@@ -65,6 +65,23 @@ func (o *osmBase) UpdateBySQL(sql string, params ...interface{}) (int64, error) 
 	return result.RowsAffected()
 }
 
+// UpdateMultiBySQL 批量执行更新sql
+//
+//代码
+//  user := User{Id: 3, Id2: 4, Email: "test@foxmail.com"}
+//  err := o.UpdateMultiBySQL(`
+//       UPDATE user SET email='#{Email}' where id = #{Id};
+//       UPDATE user SET email='#{Email}' where id = #{Id2};`, user)
+//将id为3和4的用户email更新为"test@foxmail.com"
+func (o *osmBase) UpdateMultiBySQL(sql string, params ...interface{}) error {
+	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
+	if err != nil {
+		return err
+	}
+	_, err = o.db.Exec(sql, sqlParams...)
+	return err
+}
+
 // InsertBySQL 执行添加sql
 //
 //代码
