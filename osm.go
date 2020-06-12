@@ -73,27 +73,25 @@ type Tx struct {
 //
 //如：
 //  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", []string{"test.xml"})
-func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *Osm, err error) {
+func New(driverName, dataSource string, xmlPaths []string, params ...int) (*Osm, error) {
 	if logger == nil {
 		logger = log.New(os.Stdout, "[osm] ", log.Flags())
 	}
 
-	osm = new(Osm)
+	osm := new(Osm)
 	db, err := sql.Open(driverName, dataSource)
 
 	if err != nil {
 		if db != nil {
 			db.Close()
 		}
-		err = fmt.Errorf("create osm error : %s", err.Error())
-		return
+		return nil, fmt.Errorf("create osm error : %s", err.Error())
 	}
 
 	err = db.Ping()
 	if err != nil {
 		db.Close()
-		err = fmt.Errorf("create osm error : %s", err.Error())
-		return
+		return nil, fmt.Errorf("create osm error : %s", err.Error())
 	}
 
 	go func() {
@@ -130,7 +128,7 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 		pathInfo, err = os.Stat(xmlPath)
 
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		if pathInfo.IsDir() {
@@ -151,58 +149,58 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (osm *
 
 	for _, osmXMLPath := range osmXMLPaths {
 		sqlMappers, err := readMappers(osmXMLPath)
-		if err == nil {
-			for _, sm := range sqlMappers {
-				osm.sqlMappersMap[sm.id] = sm
-			}
-		} else {
-			err = fmt.Errorf("read sqlMappers error : %s", err.Error())
+		if err != nil {
+			return nil, fmt.Errorf("read sqlMappers error : %s", err.Error())
+		}
+		for _, sm := range sqlMappers {
+			osm.sqlMappersMap[sm.id] = sm
 		}
 	}
 
-	return
+	return osm, nil
 }
 
 // Begin 打开事务
 //
 //如：
 //  tx, err := o.Begin()
-func (o *Osm) Begin() (tx *Tx, err error) {
-	tx = new(Tx)
+func (o *Osm) Begin() (*Tx, error) {
+	tx := new(Tx)
 	tx.sqlMappersMap = o.sqlMappersMap
 	tx.dbType = o.dbType
 
 	if o.db == nil {
-		err = fmt.Errorf("db no opened")
-	} else {
-		sqlDb, ok := o.db.(*sql.DB)
-		if ok {
-			tx.db, err = sqlDb.Begin()
-		} else {
-			err = fmt.Errorf("db no opened")
-		}
+		return nil, fmt.Errorf("db no opened")
+	}
+	sqlDb, ok := o.db.(*sql.DB)
+	if !ok {
+		return nil, fmt.Errorf("db no opened")
 	}
 
-	return
+	var err error
+	tx.db, err = sqlDb.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
 
 // Close 与数据库断开连接，释放连接资源
 //
 //如：
 //  err := o.Close()
-func (o *Osm) Close() (err error) {
+func (o *Osm) Close() error {
 	if o.db == nil {
-		err = fmt.Errorf("db no opened")
-	} else {
-		sqlDb, ok := o.db.(*sql.DB)
-		if ok {
-			err = sqlDb.Close()
-			o.db = nil
-		} else {
-			err = fmt.Errorf("db no opened")
-		}
+		return fmt.Errorf("db no opened")
 	}
-	return
+	sqlDb, ok := o.db.(*sql.DB)
+	if !ok {
+		return fmt.Errorf("db no opened")
+	}
+
+	o.db = nil
+	return sqlDb.Close()
 }
 
 // Commit 提交事务
@@ -214,10 +212,10 @@ func (o *Tx) Commit() error {
 		return fmt.Errorf("tx no runing")
 	}
 	sqlTx, ok := o.db.(*sql.Tx)
-	if ok {
-		return sqlTx.Commit()
+	if !ok {
+		return fmt.Errorf("tx no runing")
 	}
-	return fmt.Errorf("tx no runing")
+	return sqlTx.Commit()
 }
 
 // Rollback 事务回滚
@@ -229,10 +227,10 @@ func (o *Tx) Rollback() error {
 		return fmt.Errorf("tx no runing")
 	}
 	sqlTx, ok := o.db.(*sql.Tx)
-	if ok {
-		return sqlTx.Rollback()
+	if !ok {
+		return fmt.Errorf("tx no runing")
 	}
-	return fmt.Errorf("tx no runing")
+	return sqlTx.Rollback()
 }
 
 // Delete 通过id在xml中找到删除sql并执行
@@ -383,39 +381,35 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 		}
 	}
 	callback := func(containers ...interface{}) (int64, error) {
-		var err error
 		switch resultType {
 		case resultTypeStructs:
-			if len(containers) == 1 {
-				return resultStructs(o, id, sql, sqlParams, containers[0])
+			if len(containers) != 1 {
+				return 0, fmt.Errorf("sql '%s' error : resultTypeStructs ,len(containers) != 1", id)
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeStructs ,len(containers) != 1", id)
+			return resultStructs(o, id, sql, sqlParams, containers[0])
 		case resultTypeStruct:
-			if len(containers) == 1 {
-				return resultStruct(o, id, sql, sqlParams, containers[0])
+			if len(containers) != 1 {
+				return 0, fmt.Errorf("sql '%s' error : resultTypeStruct ,len(containers) != 1", id)
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeStruct ,len(containers) != 1", id)
+			return resultStruct(o, id, sql, sqlParams, containers[0])
 		case resultTypeValue:
-			if len(containers) > 0 {
-				return resultValue(o, id, sql, sqlParams, containers)
+			if len(containers) == 0 {
+				return 0, fmt.Errorf("sql '%s' error : resultTypeValue ,len(containers) == 0", id)
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeValue ,len(containers) < 1", id)
+			return resultValue(o, id, sql, sqlParams, containers)
 		case resultTypeValues:
-			if len(containers) > 0 {
-				return resultValues(o, id, sql, sqlParams, containers)
+			if len(containers) == 0 {
+				return 0, fmt.Errorf("sql '%s' error : resultTypeValues ,len(containers) == 0", id)
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeValues ,len(containers) < 1", id)
+			return resultValues(o, id, sql, sqlParams, containers)
 		case resultTypeKvs:
-			if len(containers) == 1 {
-				return resultKvs(o, id, sql, sqlParams, containers[0])
+			if len(containers) != 1 {
+				return 0, fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 1", id)
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 1", id)
+			return resultKvs(o, id, sql, sqlParams, containers[0])
 		}
+		return 0, fmt.Errorf("sql '%s' error : sql resultTypeType no in ['value','struct','values','structs','kvs']", id)
 
-		if err == nil {
-			err = fmt.Errorf("sql '%s' error : sql resultTypeType no in ['value','struct','values','structs','kvs']", id)
-		}
-		return 0, err
 	}
 	return callback
 }
@@ -466,20 +460,19 @@ func sqlIsIn(lastSQLText string) bool {
 	return false
 }
 
-func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (sql string, sqlParams []interface{}, resultType string, err error) {
+func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (string, []interface{}, string, error) {
 	sm, ok := o.sqlMappersMap[id]
-	err = nil
-
-	if !ok {
-		err = fmt.Errorf("sql '%s' error : id not found ", id)
-		return
+	if !ok || sm == nil {
+		return "", nil, "", fmt.Errorf("sql '%s' error : id not found ", id)
 	}
-	resultType = sm.result
 
 	if sm.sqlType != sqlType {
-		err = fmt.Errorf("sql '%s' error : Select type Error", id)
-		return
+		return "", nil, "", fmt.Errorf("sql '%s' error : Select type Error", id)
 	}
+
+	sql := ""
+	sqlParams := []interface{}{}
+	resultType := sm.result
 
 	var param interface{}
 	paramsSize := len(params)
@@ -495,9 +488,9 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		paramNames := []*sqlFragment{}
 		var buf bytes.Buffer
 
-		err = sm.sqlTemplate.Execute(&buf, param)
+		err := sm.sqlTemplate.Execute(&buf, param)
 		if err != nil {
-			logger.Println(err)
+			return "", nil, "", err
 		}
 		sqlOrg := buf.String()
 		defer func() {
@@ -528,8 +521,7 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 				sqlTemp = sqlTemp[ei+1:]
 				errorIndex += ei + 1
 			} else {
-				logger.Printf("sql read error \"%v\"", markSQLError(sqlOrg, errorIndex))
-				return
+				return "", nil, "", fmt.Errorf("sql read error \"%v\"", markSQLError(sqlOrg, errorIndex))
 			}
 		}
 		sqls = append(sqls, &sqlFragment{
@@ -558,23 +550,20 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 				if vv.IsValid() {
 					setDataToParamName(paramName, vv)
 				} else {
-					err = fmt.Errorf("sql '%s' error : Key '%s' no exist", sm.id, paramName.content)
-					return
+					return "", nil, "", fmt.Errorf("sql '%s' error : Key '%s' no exist", sm.id, paramName.content)
 				}
 			}
 		case kind == reflect.Struct:
 			for _, paramName := range paramNames {
 				firstChar := paramName.content[0]
 				if firstChar < 'A' || firstChar > 'Z' {
-					err = fmt.Errorf("sql '%s' error : Field '%s' unexported", sm.id, paramName.content)
-					return
+					return "", nil, "", fmt.Errorf("sql '%s' error : Field '%s' unexported", sm.id, paramName.content)
 				}
 				vv := v.FieldByName(paramName.content)
 				if vv.IsValid() {
 					setDataToParamName(paramName, vv)
 				} else {
-					err = fmt.Errorf("sql '%s' error : Field '%s' no exist", sm.id, paramName.content)
-					return
+					return "", nil, "", fmt.Errorf("sql '%s' error : Field '%s' no exist", sm.id, paramName.content)
 				}
 			}
 		case kind == reflect.Bool ||
@@ -640,5 +629,5 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 			go logger.Printf(`id:"%s", sql:"%s"`, id, sql)
 		}
 	}
-	return
+	return sql, sqlParams, resultType, nil
 }

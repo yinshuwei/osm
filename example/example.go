@@ -4,9 +4,11 @@ import (
 	"log"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	// _ "github.com/lib/pq"
 	"github.com/yinshuwei/osm"
+	// mysql drvier
+	// _ "github.com/go-sql-driver/mysql"
+	// pq drvier
+	// _ "github.com/lib/pq"
 )
 
 // ResUser 测试用实体
