@@ -363,6 +363,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 //	"struct"  : 查出的结果为单行,并存入struct，可以是指针，如var r User、var r *User
 //	"structs" : 查出的结果为多行,并存入struct array，元素可以是指针，如var r []User、var r []*User
 //	"kvs"     : 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)，Key、Value可以是指针，如var r map[string]time.Time、var r map[*string]time.Time、var r map[string]*time.Time
+//	"strings" : 查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
 //xml
 //  <select id="searchArchives" result="struct">
 //   <![CDATA[
@@ -407,6 +408,11 @@ func (o *osmBase) Select(id string, params ...interface{}) func(containers ...in
 				return 0, fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 1", id)
 			}
 			return resultKvs(o, id, sql, sqlParams, containers[0])
+		case resultTypeStrings:
+			if len(containers) != 2 {
+				return 0, fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 2", id)
+			}
+			return resultStrings(o, id, sql, sqlParams, containers[0], containers[1])
 		}
 		return 0, fmt.Errorf("sql '%s' error : sql resultTypeType no in ['value','struct','values','structs','kvs']", id)
 

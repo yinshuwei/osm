@@ -18,6 +18,7 @@ const (
 	resultTypeStruct  = "struct"  //查出的结果为单行,并存入struct
 	resultTypeStructs = "structs" //查出的结果为多行,并存入struct array
 	resultTypeKvs     = "kvs"     //查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
+	resultTypeStrings = "strings" //查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
 )
 
 type sqlMapper struct {

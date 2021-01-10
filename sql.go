@@ -210,6 +210,25 @@ func (o *osmBase) SelectKVS(sql string, params ...interface{}) func(containers .
 	return o.selectBySQL(sql, resultTypeKvs, params)
 }
 
+// SelectStrings 执行查询sql
+//
+// 查出的结果为多行，查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
+//
+//代码
+//   var columns []string
+//   var datas [][]string
+//   _, err = o.SelectStrings(`SELECT id,email FROM res_user WHERE id in #{Ids};`, []int64{1, 2})(&columns, &datas)
+//   if err != nil {
+// 	  log.Println(err)
+//   }
+//   log.Printf("columns: %v，datas: %v \n", columns, datas)
+//结果
+//   columns: ["id", "email"]
+//   datas: [["1",'test@foxmail.com'],["2","test@foxmail.com"]]
+func (o *osmBase) SelectStrings(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
+	return o.selectBySQL(sql, resultTypeStrings, params)
+}
+
 func (o *osmBase) selectBySQL(sql, resultType string, params []interface{}) func(containers ...interface{}) (int64, error) {
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 
@@ -246,6 +265,11 @@ func (o *osmBase) selectBySQL(sql, resultType string, params []interface{}) func
 				return resultKvs(o, sql, sql, sqlParams, containers[0])
 			}
 			err = fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 1", sql)
+		case resultTypeStrings:
+			if len(containers) == 2 {
+				return resultStrings(o, sql, sql, sqlParams, containers[0], containers[1])
+			}
+			err = fmt.Errorf("sql '%s' error : resultTypeStrings ,len(containers) != 2", sql)
 		}
 
 		if err == nil {
