@@ -32,7 +32,7 @@ type ResUser struct {
 }
 
 func main() {
-	osm.ShowSQL = true
+	// osm.ShowSQL = true
 	log.SetFlags(log.Ldate | log.Lshortfile)
 
 	// o, err := osm.New("postgres", "host=db01 user=golang password=123456 dbname=golang sslmode=disable", []string{"test.xml"})

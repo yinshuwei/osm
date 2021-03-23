@@ -2,9 +2,12 @@ package osm
 
 import (
 	"encoding/xml"
+	"errors"
 	"os"
 	"strings"
 	"text/template"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -48,7 +51,7 @@ func readMappers(path string) (sqlMappers []*sqlMapper, err error) {
 
 	xmlFile, err := os.Open(path)
 	if err != nil {
-		logger.Println("Error opening file: ", err)
+		errorZapLogger.Error("Error opening file:", zap.Error(err))
 		return
 	}
 	defer xmlFile.Close()
@@ -58,7 +61,7 @@ func readMappers(path string) (sqlMappers []*sqlMapper, err error) {
 	decoder := xml.NewDecoder(xmlFile)
 
 	if err = decoder.Decode(&osmXMLObj); err != nil {
-		logger.Println("Error decode file: ", path, err)
+		errorZapLogger.Error("Error opening file", zap.String("path", path), zap.Error(err))
 		return
 	}
 
@@ -96,14 +99,13 @@ func newMapper(stmt stmtXML, sqlType int) (sqlMapperObj *sqlMapper) {
 	sqlMapperObj.sqlTemplate, err = template.New(stmt.ID).Parse(sqlTemp)
 
 	if err != nil {
-		logger.Println("sql template create error", err.Error())
+		errorZapLogger.Error("sql template create error", zap.Error(err))
 	}
 
 	return
 }
 
-func markSQLError(sql string, index int) string {
-	// result := fmt.Sprintf("%s[****ERROR****]->%s", sql[0:index], sql[index:])
+func markSQLError(sql string, index int) error {
 	result := strings.Join([]string{sql[0:index], "[****ERROR****]->", sql[index:]}, "")
-	return result
+	return errors.New(result)
 }

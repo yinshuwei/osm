@@ -9,11 +9,12 @@ package osm
 import (
 	"database/sql/driver"
 	"fmt"
-	"log"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func setValue(isPtr bool, dest reflect.Value, value interface{}, destType reflect.Type) {
@@ -111,7 +112,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 	case reflect.Bool:
 		bv, err := driver.Bool.ConvertValue(src)
 		if err != nil {
-			log.Println(err)
+			errorZapLogger.Error("convertAssign Bool", zap.Error(err))
 			bv = false
 		}
 		setValue(destIsPtr, dest, bv.(bool), destType)
@@ -120,7 +121,8 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		i64, err := strconv.ParseInt(s, 10, destType.Bits())
 		if err != nil {
-			log.Println(err)
+			errorZapLogger.Error("convertAssign Int", zap.Error(err))
+			errorZapLogger.Error("", zap.Error(err))
 		}
 		dest.SetInt(i64)
 		return nil
@@ -128,7 +130,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		u64, err := strconv.ParseUint(s, 10, destType.Bits())
 		if err != nil {
-			log.Println(err)
+			errorZapLogger.Error("convertAssign Uint", zap.Error(err))
 		}
 		dest.SetUint(u64)
 		return nil
@@ -136,7 +138,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		f64, err := strconv.ParseFloat(s, destType.Bits())
 		if err != nil {
-			log.Println(err)
+			errorZapLogger.Error("convertAssign Float", zap.Error(err))
 		}
 		dest.SetFloat(f64)
 		return nil
@@ -169,24 +171,15 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 					t = t.Local()
 					setValue(destIsPtr, dest, t, destType)
 				} else {
-					log.Println(err)
+					errorZapLogger.Error("convertAssign Time", zap.Error(err))
 				}
 			}
 			return nil
 		}
 	}
 
-	log.Printf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
+	errorZapLogger.Error(fmt.Sprintf("unsupported Scan, storing driver.Value type %T into type %T", src, dest))
 	return nil
-}
-
-func cloneBytes(b []byte) []byte {
-	if b == nil {
-		return nil
-	}
-	c := make([]byte, len(b))
-	copy(c, b)
-	return c
 }
 
 func asString(src interface{}) string {

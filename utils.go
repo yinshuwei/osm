@@ -138,8 +138,7 @@ func toGoNames(name string) (string, string) {
 	for i := 0; i < num; i++ {
 		d := name[i]
 		if d == '_' {
-			lastWord := string(data[firstPoint:point])
-			word, ok := commonInitialisms[lastWord]
+			word, ok := commonInitialisms[string(data[firstPoint:point])]
 			if ok {
 				for j, b := range word {
 					dataSpecial[firstPoint+j] = b
@@ -163,8 +162,7 @@ func toGoNames(name string) (string, string) {
 			isFirst = false
 		}
 	}
-	lastWord := string(data[firstPoint:point])
-	word, ok := commonInitialisms[lastWord]
+	word, ok := commonInitialisms[string(data[firstPoint:point])]
 	if ok {
 		for j, b := range word {
 			dataSpecial[firstPoint+j] = b

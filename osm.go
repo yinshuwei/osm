@@ -21,12 +21,13 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -35,11 +36,21 @@ const (
 )
 
 var (
-	logger *log.Logger
+	errorZapLogger *zap.Logger
+	infoZapLogger  *zap.Logger
 
 	// ShowSQL 显示执行的sql，用于调试，使用logger打印
-	ShowSQL = false
+	showSQL = false
 )
+
+func init() {
+	var err error
+	infoZapLogger, err = zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
+	infoZapLogger = errorZapLogger
+}
 
 type dbRunner interface {
 	Prepare(query string) (*sql.Stmt, error)
@@ -64,6 +75,12 @@ type Tx struct {
 	osmBase
 }
 
+func ConfLogger(_infoZapLogger, _errorZapLogger *zap.Logger, _showSQL bool) {
+	infoZapLogger = _infoZapLogger
+	errorZapLogger = _errorZapLogger
+	showSQL = _showSQL
+}
+
 // New 创建一个新的Osm，这个过程会打开数据库连接。
 //
 //driverName是数据库驱动名称如"mysql".
@@ -74,10 +91,6 @@ type Tx struct {
 //如：
 //  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", []string{"test.xml"})
 func New(driverName, dataSource string, xmlPaths []string, params ...int) (*Osm, error) {
-	if logger == nil {
-		logger = log.New(os.Stdout, "[osm] ", log.Flags())
-	}
-
 	osm := new(Osm)
 	db, err := sql.Open(driverName, dataSource)
 
@@ -98,7 +111,7 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (*Osm,
 		for {
 			err := db.Ping()
 			if err != nil {
-				log.Println("Ping Fail,", err)
+				errorZapLogger.Error("Osm Ping Fail", zap.Error(err))
 			}
 			time.Sleep(time.Minute)
 		}
@@ -347,7 +360,7 @@ func (o *osmBase) Insert(id string, params ...interface{}) (int64, int64, error)
 	if o.dbType == dbTypeMysql {
 		insertID, err = result.LastInsertId()
 		if err != nil {
-			logger.Println(err)
+			errorZapLogger.Error("Insert LastInsertId", zap.Error(err))
 		}
 	}
 
@@ -500,8 +513,8 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		}
 		sqlOrg := buf.String()
 		defer func() {
-			if ShowSQL {
-				go logger.Printf(`id:"%s", sql:"%s", params:"%+v", dbSQL:"%s", dbParams:"%+v"`, id, sqlOrg, param, sql, sqlParams)
+			if showSQL {
+				infoZapLogger.Info("readSQLParams ShowSQL", zap.String("id", id), zap.String("sql", sqlOrg), zap.Reflect("params", param), zap.String("dbSQL", sql), zap.Reflect("dbParams", sqlParams))
 			}
 		}()
 		sqlTemp := sqlOrg
@@ -631,8 +644,8 @@ func (o *osmBase) readSQLParams(id string, sqlType int, params ...interface{}) (
 		sql = strings.Join(sqlTexts, "")
 	} else {
 		sql = sm.sql
-		if ShowSQL {
-			go logger.Printf(`id:"%s", sql:"%s"`, id, sql)
+		if showSQL {
+			infoZapLogger.Info("readSQLParams ShowSQL", zap.String("id", id), zap.String("sql", sql))
 		}
 	}
 	return sql, sqlParams, resultType, nil
