@@ -33,6 +33,7 @@ import (
 const (
 	dbTypeMysql    = 0
 	dbTypePostgres = 1
+	dbTypeMssql    = 2
 )
 
 var (
@@ -120,6 +121,8 @@ func New(driverName, dataSource string, xmlPaths []string, params ...int) (*Osm,
 	switch driverName {
 	case "postgres":
 		osm.dbType = dbTypePostgres
+	case "mssql":
+		osm.dbType = dbTypeMssql
 	default:
 		osm.dbType = dbTypeMysql
 	}
