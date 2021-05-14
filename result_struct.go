@@ -34,12 +34,11 @@ func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container
 		elementTypes := make([]reflect.Type, columnsCount)
 		isPtrs := make([]bool, columnsCount)
 		values := make([]reflect.Value, columnsCount)
-		allFieldNameTypeMap := map[string]*reflect.Type{} // struct每个成员的名字，不一定与sql中的列对应
+
 		structType := valueElem.Type()
-		for i := 0; i < structType.NumField(); i++ {
-			t := structType.Field(i)
-			allFieldNameTypeMap[t.Name] = &(t.Type)
-		}
+		allFieldNameTypeMap := map[string]*reflect.Type{} // struct每个成员的名字，不一定与sql中的列对应
+		getStructFieldMap(structType, allFieldNameTypeMap)
+
 		for i, col := range columns {
 			filedName, t := findFiled(allFieldNameTypeMap, col)
 			if filedName != "" && t != nil {
@@ -63,4 +62,15 @@ func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container
 	}
 
 	return 1, nil
+}
+
+func getStructFieldMap(t reflect.Type, m map[string]*reflect.Type) {
+	for i := 0; i < t.NumField(); i++ {
+		t := t.Field(i)
+		if t.Anonymous && t.Type.Kind() == reflect.Struct {
+			getStructFieldMap(t.Type, m)
+			continue
+		}
+		m[t.Name] = &(t.Type)
+	}
 }

@@ -38,10 +38,7 @@ func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, containe
 	var isPtrs []bool                                 // struct成员的类型是否为指针，与sql中的列对应
 	var fieldNames []string                           // struct成员的名字，与sql中的列对应
 	allFieldNameTypeMap := map[string]*reflect.Type{} // struct每个成员的名字，不一定与sql中的列对应
-	for i := 0; i < structType.NumField(); i++ {
-		t := structType.Field(i)
-		allFieldNameTypeMap[t.Name] = &(t.Type)
-	}
+	getStructFieldMap(structType, allFieldNameTypeMap)
 
 	// 使用提供的SQL，从数据库读取数据
 	rows, err := o.db.Query(sql, sqlParams...)
