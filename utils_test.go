@@ -1,6 +1,7 @@
 package osm
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -51,5 +52,27 @@ func TestToGoNames(t *testing.T) {
 		if b != words[2] {
 			t.Errorf("特珠字符大写方式转换错误,\"%s\"->\"%s\"", words[0], b)
 		}
+	}
+}
+
+func TestGetFieldMap(t *testing.T) {
+	type A struct {
+		Name string
+	}
+
+	type B struct {
+		ID int
+		A
+	}
+	type C struct {
+		B
+		Age int64
+	}
+	m := map[string]*reflect.Type{}
+	b := reflect.TypeOf(&C{}).Elem()
+
+	getStructFieldMap(b, m)
+	for k, v := range m {
+		t.Log(k, v)
 	}
 }
