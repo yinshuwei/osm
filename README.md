@@ -9,6 +9,9 @@ osm(Object Sql Mapping) 是用go编写的极简sql工具，目前已在生产环
     _, err = o.SelectXXX(sql, params...)(&result...)
 ```
 
+## 特性
+
+- 不依赖标准库以外的三方库
 
 - 灵活的SQL参数 #{ParamName}
     - 可以按参数顺序匹配
@@ -52,65 +55,103 @@ http://godoc.org/github.com/yinshuwei/osm
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='user table';
 
-* 执行SQL示例
 
-example_sql.go
+执行SQL示例
+
+osm_demo.go
     
-    package main
+```go
+package main
 
-    import (
-        "fmt"
-        "time"
+import (
+	"encoding/json"
+	"fmt"
+	"time"
 
-        _ "github.com/go-sql-driver/mysql"
-        "github.com/yinshuwei/osm"
-    )
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/yinshuwei/osm"
+	"go.uber.org/zap"
+)
 
-    // User 用户Model
-    type User struct {
-        ID         int64
-        Email      string
-        Nickname   string
-        CreateTime time.Time
-    }
+// User 用户Model
+type User struct {
+	ID         int64
+	Email      string
+	Nickname   string
+	CreateTime time.Time
+}
 
-    func main() {
-        o, err := osm.New("mysql", "root:123456@/test?charset=utf8")
-        if err != nil {
-            fmt.Println(err.Error())
-        }
+func main() {
+	o, err := osm.New("mysql", "root:123456@/test?charset=utf8")
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 
-        //添加
-        user := User{
-            Email:      "test@foxmail.com",
-            Nickname:   "haha",
-            CreateTime: time.Now(),
-        }
-        sql := "INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});"
-        fmt.Println(o.Insert(sql, user))
+	logger, _ := zap.NewDevelopment()
+	osm.ConfLogger(zap.NewStdLog(logger), zap.NewStdLog(logger), true)
 
-        //查询
-        user = User{
-            Email: "test@foxmail.com",
-        }
-        var results []User
-        sql = "SELECT id,email,nickname,create_time FROM user WHERE email=#{Email};"
-        _, err = o.SelectStructs(sql, user)(&results)
-        if err != nil {
-            fmt.Println(err.Error())
-        }
-        for _, u := range results {
-            fmt.Println(u)
-        }
+	//添加
+	user := User{
+		Email:      "test@foxmail.com",
+		Nickname:   "haha",
+		CreateTime: time.Now(),
+	}
+	id, count, err := o.Insert("INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", user)
+	if err != nil {
+		logger.Error("insert error", zap.Error(err))
+	}
+	logger.Info("test insert", zap.Int64("id", id), zap.Int64("count", count))
 
-        //删除
-        fmt.Println(o.Delete("DELETE FROM user WHERE email=#{Email}", user))
+	//更新
+	user = User{
+		Email:    "test@foxmail.com",
+		Nickname: "hello",
+	}
+	count, err = o.Update("UPDATE user SET nickname=#{Nickname} WHERE email=#{Email}", user)
+	if err != nil {
+		logger.Error("update error", zap.Error(err))
+	}
+	logger.Info("test update", zap.Int64("count", count))
 
-        err = o.Close()
-        if err != nil {
-            fmt.Println(err.Error())
-        }
-    }
+	//查询
+	user = User{
+		Email: "test@foxmail.com",
+	}
+	var results []User
+	count, err = o.SelectStructs("SELECT id,email,nickname,create_time FROM user WHERE email=#{Email};", user)(&results)
+	if err != nil {
+		logger.Error("test select", zap.Error(err))
+	}
+	resultBytes, _ := json.Marshal(results)
+	logger.Info("test select", zap.Int64("count", count), zap.ByteString("result", resultBytes))
+
+	//删除
+	count, err = o.Delete("DELETE FROM user WHERE email=#{Email}", user)
+	if err != nil {
+		logger.Error("test delete", zap.Error(err))
+	}
+	logger.Info("test delete", zap.Int64("count", count))
+
+	//关闭
+	err = o.Close()
+	if err != nil {
+		logger.Error("close", zap.Error(err))
+	}
+}
+```
+
+结果
+```log
+2022-02-18T18:46:54.347+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"haha","CreateTime":"2022-02-18T18:46:54.346897988+08:00"}, dbSql: INSERT INTO user (email,nickname,create_time) VALUES (?,?,?);, dbParams: ["test@foxmail.com","haha","2022-02-18 18:46:54"]
+2022-02-18T18:46:54.348+0800    INFO    osm_demo/main.go:40     test insert     {"id": 2, "count": 1}
+2022-02-18T18:46:54.348+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: UPDATE user SET nickname=#{Nickname} WHERE email=#{Email}, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"hello","CreateTime":"0001-01-01T00:00:00Z"}, dbSql: UPDATE user SET nickname=? WHERE email=?, dbParams: ["hello","test@foxmail.com"]
+2022-02-18T18:46:54.349+0800    INFO    osm_demo/main.go:51     test update     {"count": 1}
+2022-02-18T18:46:54.350+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: SELECT id,email,nickname,create_time FROM user WHERE email=#{Email};, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"","CreateTime":"0001-01-01T00:00:00Z"}, dbSql: SELECT id,email,nickname,create_time FROM user WHERE email=?;, dbParams: ["test@foxmail.com"]
+2022-02-18T18:46:54.350+0800    INFO    osm_demo/main.go:63     test select     {"count": 1, "result": "[{\"ID\":2,\"Email\":\"test@foxmail.com\",\"Nickname\":\"hello\",\"CreateTime\":\"2022-02-18T18:46:54+08:00\"}]"}
+2022-02-18T18:46:54.350+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: DELETE FROM user WHERE email=#{Email}, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"","CreateTime":"0001-01-01T00:00:00Z"}, dbSql: DELETE FROM user WHERE email=?, dbParams: ["test@foxmail.com"]
+2022-02-18T18:46:54.351+0800    INFO    osm_demo/main.go:70     test delete     {"count": 1}
+```
+
 
 ## <a id="field_column_mapping" name="field_column_mapping">struct字段名与SQL列名对应关系</a>
 
