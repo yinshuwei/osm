@@ -13,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 func setValue(isPtr bool, dest reflect.Value, value interface{}, destType reflect.Type) {
@@ -112,7 +110,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 	case reflect.Bool:
 		bv, err := driver.Bool.ConvertValue(src)
 		if err != nil {
-			errorZapLogger.Error("convertAssign Bool", zap.Error(err))
+			errorLogger.Printf("convertAssign Bool error: %s", err.Error())
 			bv = false
 		}
 		setValue(destIsPtr, dest, bv.(bool), destType)
@@ -121,8 +119,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		i64, err := strconv.ParseInt(s, 10, destType.Bits())
 		if err != nil {
-			errorZapLogger.Error("convertAssign Int", zap.Error(err))
-			errorZapLogger.Error("", zap.Error(err))
+			errorLogger.Printf("convertAssign Int error: %s", err.Error())
 		}
 		dest.SetInt(i64)
 		return nil
@@ -130,7 +127,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		u64, err := strconv.ParseUint(s, 10, destType.Bits())
 		if err != nil {
-			errorZapLogger.Error("convertAssign Uint", zap.Error(err))
+			errorLogger.Printf("convertAssign Uint error: %s", err.Error())
 		}
 		dest.SetUint(u64)
 		return nil
@@ -138,7 +135,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		f64, err := strconv.ParseFloat(s, destType.Bits())
 		if err != nil {
-			errorZapLogger.Error("convertAssign Float", zap.Error(err))
+			errorLogger.Printf("convertAssign Float error: %s", err.Error())
 		}
 		dest.SetFloat(f64)
 		return nil
@@ -171,14 +168,14 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 					t = t.Local()
 					setValue(destIsPtr, dest, t, destType)
 				} else {
-					errorZapLogger.Error("convertAssign Time", zap.Error(err))
+					errorLogger.Printf("convertAssign Time error: %s", err.Error())
 				}
 			}
 			return nil
 		}
 	}
 
-	errorZapLogger.Error(fmt.Sprintf("unsupported Scan, storing driver.Value type %T into type %T", src, dest))
+	errorLogger.Printf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
 	return nil
 }
 

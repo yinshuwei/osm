@@ -6,8 +6,6 @@ import (
 	"os"
 	"strings"
 	"text/template"
-
-	"go.uber.org/zap"
 )
 
 const (
@@ -51,7 +49,7 @@ func readMappers(path string) (sqlMappers []*sqlMapper, err error) {
 
 	xmlFile, err := os.Open(path)
 	if err != nil {
-		errorZapLogger.Error("Error opening file:", zap.Error(err))
+		errorLogger.Printf("open file error: %s", err.Error())
 		return
 	}
 	defer xmlFile.Close()
@@ -61,7 +59,7 @@ func readMappers(path string) (sqlMappers []*sqlMapper, err error) {
 	decoder := xml.NewDecoder(xmlFile)
 
 	if err = decoder.Decode(&osmXMLObj); err != nil {
-		errorZapLogger.Error("Error opening file", zap.String("path", path), zap.Error(err))
+		errorLogger.Printf("open file path: %s, error: %s", path, err.Error())
 		return
 	}
 
@@ -99,7 +97,7 @@ func newMapper(stmt stmtXML, sqlType int) (sqlMapperObj *sqlMapper) {
 	sqlMapperObj.sqlTemplate, err = template.New(stmt.ID).Parse(sqlTemp)
 
 	if err != nil {
-		errorZapLogger.Error("sql template create error", zap.Error(err))
+		errorLogger.Printf("sql template create error: %s", err.Error())
 	}
 
 	return

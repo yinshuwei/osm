@@ -1,12 +1,11 @@
 package osm
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
-
-	"go.uber.org/zap"
 )
 
 // DeleteBySQL 执行删除sql
@@ -119,7 +118,7 @@ func (o *osmBase) InsertBySQL(sql string, params ...interface{}) (int64, int64, 
 	if o.dbType == dbTypeMysql {
 		insertID, err = result.LastInsertId()
 		if err != nil {
-			errorZapLogger.Error("InsertBySQL LastInsertId", zap.Error(err))
+			errorLogger.Printf("lastInsertId read error: %s", err.Error())
 		}
 	}
 
@@ -297,7 +296,9 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 		paramNames := []*sqlFragment{}
 		defer func() {
 			if showSQL {
-				infoZapLogger.Info("readSQLParamsBySQL ShowSQL", zap.String("sql", sqlOrg), zap.Reflect("params", param), zap.String("dbSQL", sql), zap.Reflect("dbParams", sqlParams))
+				params, _ := json.Marshal(param)
+				sqlParams, _ := json.Marshal(sqlParams)
+				infoLogger.Printf("readSQLParamsBySQL showSql, sql: %s, params: %s, dbSql: %s, dbParams: %s", sqlOrg, string(params), sql, string(sqlParams))
 			}
 		}()
 		sqlTemp := sqlOrg
@@ -323,7 +324,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 				sqlTemp = sqlTemp[ei+1:]
 				errorIndex += ei + 1
 			} else {
-				errorZapLogger.Error("sql read error", zap.Error(markSQLError(sqlOrg, errorIndex)))
+				errorLogger.Printf("sql read error: %s", markSQLError(sqlOrg, errorIndex).Error())
 				return
 			}
 		}
@@ -432,7 +433,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 	} else {
 		sql = sqlOrg
 		if showSQL {
-			infoZapLogger.Info("readSQLParamsBySQL ShowSQL", zap.String("sql", sql))
+			infoLogger.Printf("readSQLParamsBySQL showSql, sql: %s", sql)
 		}
 	}
 	return
