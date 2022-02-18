@@ -1,7 +1,7 @@
 osm
 ===
 
-osm(Object Sql Mapping) 是用go编写的极简sql工具，目前已在生产环境中使用，支持MySQL和PostgreSQL。
+osm(Object Sql Mapping) 是用go编写的极简sql工具，目前已在生产环境中使用，支持MySQL、PostgreSQL和SQL Server。
 
 设计的目的就是提供一种简单查询接口：
 
