@@ -2,16 +2,26 @@ package osm
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
 )
 
-// DeleteBySQL 执行删除sql
+const (
+	resultTypeValue   = "value"   //查出的结果为单行,并存入不定长的变量上(...)
+	resultTypeValues  = "values"  //查出的结果为多行,并存入不定长的变量上(...，每个都为array)
+	resultTypeStruct  = "struct"  //查出的结果为单行,并存入struct
+	resultTypeStructs = "structs" //查出的结果为多行,并存入struct array
+	resultTypeKvs     = "kvs"     //查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
+	resultTypeStrings = "strings" //查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
+)
+
+// Delete 执行删除sql
 //
 //代码
-//   count, err := o.DeleteBySQL(`DELETE FROM res_user WHERE id in #{Ids};`, []int64{1, 2})
+//   count, err := o.Delete(`DELETE FROM res_user WHERE id in #{Ids};`, []int64{1, 2})
 //   if err != nil {
 // 	   log.Println(err)
 //   }
@@ -20,7 +30,7 @@ import (
 //
 //   count: 2
 //删除id为1和2的用户数据
-func (o *osmBase) DeleteBySQL(sql string, params ...interface{}) (int64, error) {
+func (o *osmBase) Delete(sql string, params ...interface{}) (int64, error) {
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return 0, err
@@ -37,10 +47,10 @@ func (o *osmBase) DeleteBySQL(sql string, params ...interface{}) (int64, error) 
 	return result.RowsAffected()
 }
 
-// UpdateBySQL 执行更新sql
+// Update 执行更新sql
 //
 //代码
-//   count, err := o.UpdateBySQL(`UPDATE res_user SET email=#{Email} WHERE id=#{ID};`, "test2@foxmail.com", 3)
+//   count, err := o.Update(`UPDATE res_user SET email=#{Email} WHERE id=#{ID};`, "test2@foxmail.com", 3)
 //   if err != nil {
 // 	  log.Println(err)
 //   }
@@ -49,7 +59,7 @@ func (o *osmBase) DeleteBySQL(sql string, params ...interface{}) (int64, error) 
 //   count: 1
 //
 //将id为1的用户email更新为"test2@foxmail.com"
-func (o *osmBase) UpdateBySQL(sql string, params ...interface{}) (int64, error) {
+func (o *osmBase) Update(sql string, params ...interface{}) (int64, error) {
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return 0, err
@@ -66,15 +76,15 @@ func (o *osmBase) UpdateBySQL(sql string, params ...interface{}) (int64, error) 
 	return result.RowsAffected()
 }
 
-// UpdateMultiBySQL 批量执行更新sql
+// UpdateMulti 批量执行更新sql
 //
 //代码
 //  user := User{Id: 3, Id2: 4, Email: "test@foxmail.com"}
-//  err := o.UpdateMultiBySQL(`
+//  err := o.UpdateMulti(`
 //       UPDATE user SET email='#{Email}' where id = #{Id};
 //       UPDATE user SET email='#{Email}' where id = #{Id2};`, user)
 //将id为3和4的用户email更新为"test@foxmail.com"
-func (o *osmBase) UpdateMultiBySQL(sql string, params ...interface{}) error {
+func (o *osmBase) UpdateMulti(sql string, params ...interface{}) error {
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return err
@@ -83,13 +93,13 @@ func (o *osmBase) UpdateMultiBySQL(sql string, params ...interface{}) error {
 	return err
 }
 
-// InsertBySQL 执行添加sql
+// Insert 执行添加sql
 //
 //代码
 //   insertResUser := ResUser{
 // 	  Email: "test@foxmail.com",
 //   }
-//   insertID, count, err := o.InsertBySQL("INSERT INTO res_user (email) VALUES(#{Email});", insertResUser)
+//   insertID, count, err := o.Insert("INSERT INTO res_user (email) VALUES(#{Email});", insertResUser)
 //   if err != nil {
 // 	  log.Println(err)
 //   }
@@ -98,7 +108,7 @@ func (o *osmBase) UpdateMultiBySQL(sql string, params ...interface{}) error {
 //   insertID: 3 count: 1
 //
 //添加一个用户数据，email为"test@foxmail.com"
-func (o *osmBase) InsertBySQL(sql string, params ...interface{}) (int64, int64, error) {
+func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error) {
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return 0, 0, err
@@ -437,4 +447,9 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 		}
 	}
 	return
+}
+
+func markSQLError(sql string, index int) error {
+	result := strings.Join([]string{sql[0:index], "[****ERROR****]->", sql[index:]}, "")
+	return errors.New(result)
 }

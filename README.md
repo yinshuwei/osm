@@ -1,21 +1,30 @@
 osm
 ===
 
-osm(Object Sql Mapping And Template)是用go编写的ORM工具，目前已在生产环境中使用，只支持mysql和postgresql(其他数据库没有测试过)。
+osm(Object Sql Mapping) 是用go编写的极简sql工具，目前已在生产环境中使用，支持MySQL和PostgreSQL。
 
-以前是使用MyBatis开发java服务端，它的sql mapping很灵活，把sql独立出来，程序通过输入与输出来完成所有的数据库操作。
+设计的目的就是提供一种简单查询接口：
 
-osm就是对MyBatis的简单模仿。当然动态sql的生成是使用go和template包，所以sql mapping的格式与MyBatis的不同。sql xml 格式如下：
+```go
+    _, err = o.SelectXXX(sql, params...)(&result...)
+```
 
-    <?xml version="1.0" encoding="utf-8"?>
-    <osm>
-     <select id="selectUsers" result="structs">
-       SELECT id,email
-       FROM user
-       {{if ne .Email ""}} where email=#{Email} {{end}}
-       order by id
-     </select>
-    </osm>
+
+- 灵活的SQL参数 #{ParamName}
+    - 可以按参数顺序匹配
+    - 可以匹配map[string]interface{}
+    - 可以匹配struct
+    - 可以使用in
+
+- 灵活的SQL结果接收
+    - value (&username, &email) 查出的结果为单行,并存入不定长的变量上(...)
+	- values (&usernameList, &emailList) 查出的结果为多行,并存入不定长的变量上(...，每个都为array)
+	- struct (&user) 查出的结果为单行,并存入struct
+	- structs (&users) 查出的结果为多行,并存入struct array
+	- kvs (&emailUsernameMap) 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
+	- strings (&columns, &datas) 查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string（常用于数据交换，如给python的pandas提供数据源）
+
+- [默认的struct字段名与SQL列名对应关系](#field_column_mapping)
 
 
 ## osm获取
@@ -43,7 +52,7 @@ http://godoc.org/github.com/yinshuwei/osm
       PRIMARY KEY (`id`)
     ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COMMENT='user table';
 
-* 直接执行SQL(不支持go template解析)示例
+* 执行SQL示例
 
 example_sql.go
     
@@ -66,7 +75,7 @@ example_sql.go
     }
 
     func main() {
-        o, err := osm.New("mysql", "root:123456@/test?charset=utf8", []string{})
+        o, err := osm.New("mysql", "root:123456@/test?charset=utf8")
         if err != nil {
             fmt.Println(err.Error())
         }
@@ -78,7 +87,7 @@ example_sql.go
             CreateTime: time.Now(),
         }
         sql := "INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});"
-        fmt.Println(o.InsertBySQL(sql, user))
+        fmt.Println(o.Insert(sql, user))
 
         //查询
         user = User{
@@ -95,7 +104,7 @@ example_sql.go
         }
 
         //删除
-        fmt.Println(o.DeleteBySQL("DELETE FROM user WHERE email=#{Email}", user))
+        fmt.Println(o.Delete("DELETE FROM user WHERE email=#{Email}", user))
 
         err = o.Close()
         if err != nil {
@@ -103,177 +112,7 @@ example_sql.go
         }
     }
 
-
-
-* 执行template中的SQL(支持go template解析)示例
-
-sql template文件test.xml
-
-    <?xml version="1.0" encoding="utf-8"?>
-    <osm>
-        <insert id="insertUser">
-        <![CDATA[
-    INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});
-        ]]>
-        </insert>
-    
-        <select id="selectUser" result="structs">
-        <![CDATA[
-    SELECT id,email,nickname,create_time FROM user 
-    WHERE 
-    {{if ne .Email ""}}email=#{Email} and{{end}}
-    {{if ne .Nickname ""}}nickname=#{Nickname} and{{end}}
-    1=1;
-        ]]>
-        </select>
-    
-        <delete id="deleteUser">
-        <![CDATA[
-    DELETE FROM user WHERE email=#{Email}
-        ]]>
-        </delete>
-    </osm>
-
-example.go
-    
-    package main
-
-    import (
-        "fmt"
-        "time"
-
-        _ "github.com/go-sql-driver/mysql"
-        "github.com/yinshuwei/osm"
-    )
-
-    // User 用户model
-    type User struct {
-        ID         int64
-        Email      string
-        Nickname   string
-        CreateTime time.Time
-    }
-
-    func main() {
-        o, err := osm.New("mysql", "root:root@/test?charset=utf8", []string{"test.xml"})
-        if err != nil {
-            fmt.Println(err.Error())
-        }
-
-        //添加
-        user := User{
-            Email:      "test@foxmail.com",
-            Nickname:   "haha",
-            CreateTime: time.Now(),
-        }
-        fmt.Println(o.Insert("insertUser", user))
-
-        //动态查询
-        user = User{
-            Email: "test@foxmail.com",
-        }
-        var results []User
-        o.Select("selectUser", user)(&results)
-        for _, u := range results {
-            fmt.Println(u)
-        }
-
-        //删除
-        fmt.Println(o.Delete("deleteUser", user))
-
-        err = o.Close()
-        if err != nil {
-            fmt.Println(err.Error())
-        }
-    }
-
-
-
-## 查询结果类型
-
-
-* value 查出的结果为单行,并存入不定长的变量上(...)
-    
-    xml
-
-        <select id="selectResUserValue" result="value">
-            SELECT id, email, head_image_url FROM res_user WHERE email=#{Email};
-        </select>
-
-    go
-
-        user := ResUser{Email: "test@foxmail.com"}
-        var id int64
-        var email, headImageURL string
-        o.Select("selectResUserValue", user)(&id, &email, &headImageURL)
-
-        log.Println(id, email, headImageURL)
-
-* values 查出的结果为多行,并存入不定长的变量上(...，每个都为array，每个array长度都与结果集行数相同)
-    
-    xml
-
-        <select id="selectResUserValues" result="values">
-            SELECT id,email,head_image_url FROM res_user WHERE city=#{City} order by id;
-        </select>
-
-    go
-
-        user := ResUser{City: "上海"}
-        var ids []int64
-        var emails, headImageUrls []string
-        o.Select("selectResUserValues", user)(&ids, &emails, &headImageUrls)
-
-        log.Println(ids, emails, headImageUrls)
-
-* struct  查出的结果为单行,并存入struct
-    
-    xml
-
-        <select id="selectResUser" result="struct">
-            SELECT id, email, head_image_url FROM res_user WHERE email=#{Email};
-        </select>
-
-    go
-
-        user := ResUser{Email: "test@foxmail.com"}
-        var result ResUser
-        o.Select("selectResUser", user)(&result)
-
-        log.Printf("%#v", result)
-
-* structs 查出的结果为多行,并存入struct array
-    
-    xml
-
-        <select id="selectResUsers" result="structs">
-            SELECT id,email,head_image_url FROM res_user WHERE city=#{City} order by id;
-        </select>
-
-    go
-
-        user := ResUser{City: "上海"}
-        var results []*ResUser // 或var results []ResUser
-        o.Select("selectResUsers", user)(&results)
-        log.Printf("%#v", results)
-
-* kvs 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
-    
-    xml
-
-        <select id="selectResUserKvs" result="kvs">
-            SELECT id,email FROM res_user WHERE city=#{City} order by id;
-        </select>
-
-    go
-
-        user := ResUser{City: "上海"}
-        var idEmailMap map[int64]string
-        o.Select("selectResUserKvs", user)(&idEmailMap)
-        log.Println(idEmailMap)
-
-
-## struct与SQL列对应关系
+## <a id="field_column_mapping" name="field_column_mapping">struct字段名与SQL列名对应关系</a>
 
 * 正常的转换过程
 
