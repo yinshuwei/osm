@@ -1,3 +1,3 @@
-module github.com/yinshuwei/osm
+module github.com/yinshuwei/osm/v2
 
-go 1.13
+go 1.16
