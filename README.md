@@ -30,13 +30,19 @@ _, err = o.SelectXXX(sql, params...)(&result...)
 - [默认的struct字段名与SQL列名对应关系](#field_column_mapping)
 
 
-## osm获取
+## go.mod
 
-    go get github.com/yinshuwei/osm
+```
+require (
+	github.com/yinshuwei/osm/v2 v2.0.2
+)
+```
+
+
 
 ## api doc
 
-http://godoc.org/github.com/yinshuwei/osm
+https://pkg.go.dev/github.com/yinshuwei/osm
 
 ## Quickstart
 
@@ -69,7 +75,7 @@ import (
     "time"
 
     _ "github.com/go-sql-driver/mysql"
-    "github.com/yinshuwei/osm"
+    "github.com/yinshuwei/osm/v2"
     "go.uber.org/zap"
 )
 
