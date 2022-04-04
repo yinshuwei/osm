@@ -50,7 +50,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	infoZapLogger = errorZapLogger
+	errorZapLogger = infoZapLogger
 }
 
 type dbRunner interface {
