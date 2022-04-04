@@ -53,15 +53,22 @@ func ConfLogger(_infoLogger, _errorLogger Logger, _showSQL bool) {
 	showSQL = _showSQL
 }
 
+type Options struct {
+	MaxIdleConns    int
+	MaxOpenConns    int
+	ConnMaxLifetime time.Duration
+	ConnMaxIdleTime time.Duration
+}
+
 // New 创建一个新的Osm，这个过程会打开数据库连接。
 //
 //driverName是数据库驱动名称如"mysql".
 //dataSource是数据库连接信息如"root:root@/51jczj?charset=utf8".
-//params是数据连接的参数，可以是0个1个或2个数字，第一个表示MaxIdleConns，第二个表示MaxOpenConns.
+//options是数据连接的参数，MaxIdleConns, MaxOpenConns, ConnMaxLifetime, ConnMaxIdleTime
 //
 //如：
 //  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", 50, 100)
-func New(driverName, dataSource string, params ...int) (*Osm, error) {
+func New(driverName, dataSource string, options Options) (*Osm, error) {
 	osm := new(Osm)
 	db, err := sql.Open(driverName, dataSource)
 
@@ -98,13 +105,20 @@ func New(driverName, dataSource string, params ...int) (*Osm, error) {
 	}
 	osm.db = db
 
-	for i, v := range params {
-		switch i {
-		case 0:
-			db.SetMaxIdleConns(v)
-		case 1:
-			db.SetMaxOpenConns(v)
-		}
+	if options.MaxIdleConns > 0 {
+		db.SetMaxIdleConns(options.MaxIdleConns)
+	}
+
+	if options.MaxOpenConns > 0 {
+		db.SetMaxOpenConns(options.MaxOpenConns)
+	}
+
+	if options.ConnMaxLifetime > 0 {
+		db.SetConnMaxLifetime(options.ConnMaxLifetime)
+	}
+
+	if options.ConnMaxIdleTime > 0 {
+		db.SetConnMaxIdleTime(options.ConnMaxIdleTime)
 	}
 
 	return osm, nil
