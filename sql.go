@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -31,6 +32,13 @@ const (
 //   count: 2
 //删除id为1和2的用户数据
 func (o *osmBase) Delete(sql string, params ...interface{}) (int64, error) {
+	now := time.Now()
+	func(start time.Time) {
+		if time.Since(start) > slowLogDuration {
+			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		}
+	}(now)
+
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return 0, err
@@ -60,6 +68,13 @@ func (o *osmBase) Delete(sql string, params ...interface{}) (int64, error) {
 //
 //将id为1的用户email更新为"test2@foxmail.com"
 func (o *osmBase) Update(sql string, params ...interface{}) (int64, error) {
+	now := time.Now()
+	func(start time.Time) {
+		if time.Since(start) > slowLogDuration {
+			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		}
+	}(now)
+
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return 0, err
@@ -85,6 +100,13 @@ func (o *osmBase) Update(sql string, params ...interface{}) (int64, error) {
 //       UPDATE user SET email='#{Email}' where id = #{Id2};`, user)
 //将id为3和4的用户email更新为"test@foxmail.com"
 func (o *osmBase) UpdateMulti(sql string, params ...interface{}) error {
+	now := time.Now()
+	func(start time.Time) {
+		if time.Since(start) > slowLogDuration {
+			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		}
+	}(now)
+
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return err
@@ -109,6 +131,13 @@ func (o *osmBase) UpdateMulti(sql string, params ...interface{}) error {
 //
 //添加一个用户数据，email为"test@foxmail.com"
 func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error) {
+	now := time.Now()
+	func(start time.Time) {
+		if time.Since(start) > slowLogDuration {
+			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		}
+	}(now)
+
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 	if err != nil {
 		return 0, 0, err
@@ -128,7 +157,7 @@ func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error
 	if o.dbType == dbTypeMysql {
 		insertID, err = result.LastInsertId()
 		if err != nil {
-			errorLogger.Printf("lastInsertId read error: %s", err.Error())
+			errorLogger.Error("lastInsertId read error", map[string]string{"error": err.Error()})
 		}
 	}
 
@@ -241,6 +270,13 @@ func (o *osmBase) SelectStrings(sql string, params ...interface{}) func(containe
 }
 
 func (o *osmBase) selectBySQL(sql, resultType string, params []interface{}) func(containers ...interface{}) (int64, error) {
+	now := time.Now()
+	func(start time.Time) {
+		if time.Since(start) > slowLogDuration {
+			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		}
+	}(now)
+
 	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
 
 	if err != nil {
@@ -308,7 +344,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 			if showSQL {
 				params, _ := json.Marshal(param)
 				sqlParams, _ := json.Marshal(sqlParams)
-				infoLogger.Printf("readSQLParamsBySQL showSql, sql: %s, params: %s, dbSql: %s, dbParams: %s", sqlOrg, string(params), sql, string(sqlParams))
+				infoLogger.Info("readSQLParamsBySQL showSql", map[string]string{"sql": sqlOrg, "params": string(params), "dbSql": sql, "dbParams": string(sqlParams)})
 			}
 		}()
 		sqlTemp := sqlOrg
@@ -334,7 +370,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 				sqlTemp = sqlTemp[ei+1:]
 				errorIndex += ei + 1
 			} else {
-				errorLogger.Printf("sql read error: %s", markSQLError(sqlOrg, errorIndex).Error())
+				errorLogger.Error("sql read error", map[string]string{"error": markSQLError(sqlOrg, errorIndex).Error()})
 				return
 			}
 		}
@@ -443,7 +479,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 	} else {
 		sql = sqlOrg
 		if showSQL {
-			infoLogger.Printf("readSQLParamsBySQL showSql, sql: %s", sql)
+			infoLogger.Info("readSQLParamsBySQL showSql", map[string]string{"sql": sql})
 		}
 	}
 	return

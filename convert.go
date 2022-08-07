@@ -110,7 +110,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 	case reflect.Bool:
 		bv, err := driver.Bool.ConvertValue(src)
 		if err != nil {
-			errorLogger.Printf("convertAssign Bool error: %s", err.Error())
+			errorLogger.Warn("convertAssign Bool error", map[string]string{"error": err.Error()})
 			bv = false
 		}
 		setValue(destIsPtr, dest, bv.(bool), destType)
@@ -119,7 +119,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		i64, err := strconv.ParseInt(s, 10, destType.Bits())
 		if err != nil {
-			errorLogger.Printf("convertAssign Int error: %s", err.Error())
+			errorLogger.Warn("convertAssign Int error", map[string]string{"error": err.Error()})
 		}
 		dest.SetInt(i64)
 		return nil
@@ -127,7 +127,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		u64, err := strconv.ParseUint(s, 10, destType.Bits())
 		if err != nil {
-			errorLogger.Printf("convertAssign Uint error: %s", err.Error())
+			errorLogger.Warn("convertAssign Uint error", map[string]string{"error": err.Error()})
 		}
 		dest.SetUint(u64)
 		return nil
@@ -135,7 +135,7 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 		s := asString(src)
 		f64, err := strconv.ParseFloat(s, destType.Bits())
 		if err != nil {
-			errorLogger.Printf("convertAssign Float error: %s", err.Error())
+			errorLogger.Warn("convertAssign Float error", map[string]string{"error": err.Error()})
 		}
 		dest.SetFloat(f64)
 		return nil
@@ -168,14 +168,14 @@ func convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType
 					t = t.Local()
 					setValue(destIsPtr, dest, t, destType)
 				} else {
-					errorLogger.Printf("convertAssign Time error: %s", err.Error())
+					errorLogger.Warn("convertAssign Time error", map[string]string{"error": err.Error()})
 				}
 			}
 			return nil
 		}
 	}
 
-	errorLogger.Printf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
+	errorLogger.Warn(fmt.Sprintf("unsupported Scan, storing driver.Value type %T into type %T", src, dest), nil)
 	return nil
 }
 

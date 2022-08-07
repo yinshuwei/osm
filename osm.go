@@ -5,7 +5,6 @@ package osm
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -18,11 +17,14 @@ const (
 )
 
 var (
-	errorLogger Logger = log.Default()
-	infoLogger  Logger = log.Default()
+	errorLogger Logger = &DefaultLogger{}
+	infoLogger  Logger = &DefaultLogger{}
 
 	// ShowSQL 显示执行的sql，用于调试，使用logger打印
 	showSQL = false
+
+	// SlowLogDuration 慢查询时间阈值
+	slowLogDuration = 500 * time.Millisecond
 )
 
 type dbRunner interface {
@@ -47,10 +49,11 @@ type Tx struct {
 	osmBase
 }
 
-func ConfLogger(_infoLogger, _errorLogger Logger, _showSQL bool) {
+func ConfLogger(_infoLogger, _errorLogger Logger, _showSQL bool, _slowLogDuration time.Duration) {
 	infoLogger = _infoLogger
 	errorLogger = _errorLogger
 	showSQL = _showSQL
+	slowLogDuration = _slowLogDuration
 }
 
 type Options struct {
@@ -89,7 +92,7 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 		for {
 			err := db.Ping()
 			if err != nil {
-				errorLogger.Printf("osm Ping fail: %s", err.Error())
+				errorLogger.Warn("osm Ping fail", map[string]string{"error": err.Error()})
 			}
 			time.Sleep(time.Minute)
 		}
