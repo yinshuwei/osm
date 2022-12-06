@@ -21,21 +21,24 @@ const (
 
 // Delete 执行删除sql
 //
-//代码
-//   count, err := o.Delete(`DELETE FROM res_user WHERE id in #{Ids};`, []int64{1, 2})
-//   if err != nil {
-// 	   log.Println(err)
-//   }
-//   log.Println("count:", count)
-//结果
+// 代码
 //
-//   count: 2
-//删除id为1和2的用户数据
+//	  count, err := o.Delete(`DELETE FROM res_user WHERE id in #{Ids};`, []int64{1, 2})
+//	  if err != nil {
+//		   log.Println(err)
+//	  }
+//	  log.Println("count:", count)
+//
+// 结果
+//
+//	count: 2
+//
+// 删除id为1和2的用户数据
 func (o *osmBase) Delete(sql string, params ...interface{}) (int64, error) {
 	now := time.Now()
 	func(start time.Time) {
-		if time.Since(start) > slowLogDuration {
-			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		if time.Since(start) > o.options.SlowLogDuration {
+			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
@@ -57,21 +60,24 @@ func (o *osmBase) Delete(sql string, params ...interface{}) (int64, error) {
 
 // Update 执行更新sql
 //
-//代码
-//   count, err := o.Update(`UPDATE res_user SET email=#{Email} WHERE id=#{ID};`, "test2@foxmail.com", 3)
-//   if err != nil {
-// 	  log.Println(err)
-//   }
-//   log.Println("count:", count)
-//结果
-//   count: 1
+// 代码
 //
-//将id为1的用户email更新为"test2@foxmail.com"
+//	  count, err := o.Update(`UPDATE res_user SET email=#{Email} WHERE id=#{ID};`, "test2@foxmail.com", 3)
+//	  if err != nil {
+//		  log.Println(err)
+//	  }
+//	  log.Println("count:", count)
+//
+// 结果
+//
+//	count: 1
+//
+// 将id为1的用户email更新为"test2@foxmail.com"
 func (o *osmBase) Update(sql string, params ...interface{}) (int64, error) {
 	now := time.Now()
 	func(start time.Time) {
-		if time.Since(start) > slowLogDuration {
-			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		if time.Since(start) > o.options.SlowLogDuration {
+			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
@@ -93,17 +99,19 @@ func (o *osmBase) Update(sql string, params ...interface{}) (int64, error) {
 
 // UpdateMulti 批量执行更新sql
 //
-//代码
-//  user := User{Id: 3, Id2: 4, Email: "test@foxmail.com"}
-//  err := o.UpdateMulti(`
-//       UPDATE user SET email='#{Email}' where id = #{Id};
-//       UPDATE user SET email='#{Email}' where id = #{Id2};`, user)
-//将id为3和4的用户email更新为"test@foxmail.com"
+// 代码
+//
+//	user := User{Id: 3, Id2: 4, Email: "test@foxmail.com"}
+//	err := o.UpdateMulti(`
+//	     UPDATE user SET email='#{Email}' where id = #{Id};
+//	     UPDATE user SET email='#{Email}' where id = #{Id2};`, user)
+//
+// 将id为3和4的用户email更新为"test@foxmail.com"
 func (o *osmBase) UpdateMulti(sql string, params ...interface{}) error {
 	now := time.Now()
 	func(start time.Time) {
-		if time.Since(start) > slowLogDuration {
-			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		if time.Since(start) > o.options.SlowLogDuration {
+			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
@@ -117,24 +125,27 @@ func (o *osmBase) UpdateMulti(sql string, params ...interface{}) error {
 
 // Insert 执行添加sql
 //
-//代码
-//   insertResUser := ResUser{
-// 	  Email: "test@foxmail.com",
-//   }
-//   insertID, count, err := o.Insert("INSERT INTO res_user (email) VALUES(#{Email});", insertResUser)
-//   if err != nil {
-// 	  log.Println(err)
-//   }
-//   log.Println("insertID:", insertID, "count:", count)
-//结果
-//   insertID: 3 count: 1
+// 代码
 //
-//添加一个用户数据，email为"test@foxmail.com"
+//	  insertResUser := ResUser{
+//		  Email: "test@foxmail.com",
+//	  }
+//	  insertID, count, err := o.Insert("INSERT INTO res_user (email) VALUES(#{Email});", insertResUser)
+//	  if err != nil {
+//		  log.Println(err)
+//	  }
+//	  log.Println("insertID:", insertID, "count:", count)
+//
+// 结果
+//
+//	insertID: 3 count: 1
+//
+// 添加一个用户数据，email为"test@foxmail.com"
 func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error) {
 	now := time.Now()
 	func(start time.Time) {
-		if time.Since(start) > slowLogDuration {
-			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		if time.Since(start) > o.options.SlowLogDuration {
+			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
@@ -157,7 +168,7 @@ func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error
 	if o.dbType == dbTypeMysql {
 		insertID, err = result.LastInsertId()
 		if err != nil {
-			errorLogger.Error("lastInsertId read error", map[string]string{"error": err.Error()})
+			o.options.ErrorLogger.Log("lastInsertId read error", map[string]string{"error": err.Error()})
 		}
 	}
 
@@ -167,17 +178,20 @@ func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error
 
 // SelectValue 执行查询sql
 //
-//查出的结果为单行,并存入不定长的变量上(...)，可以是指针，如var r1,r2 string、var r1,r2 *string
+// 查出的结果为单行,并存入不定长的变量上(...)，可以是指针，如var r1,r2 string、var r1,r2 *string
 //
-//代码
-//   var email string
-//   _, err = o.SelectValue(`SELECT email FROM res_user WHERE id=#{Id};`, 1)(&email)
-//   if err != nil {
-// 	   log.Println(err)
-//   }
-//   log.Printf("email: %s \n", email)
-//结果
-//   email: test@foxmail.com
+// 代码
+//
+//	  var email string
+//	  _, err = o.SelectValue(`SELECT email FROM res_user WHERE id=#{Id};`, 1)(&email)
+//	  if err != nil {
+//		   log.Println(err)
+//	  }
+//	  log.Printf("email: %s \n", email)
+//
+// 结果
+//
+//	email: test@foxmail.com
 func (o *osmBase) SelectValue(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	return o.selectBySQL(sql, resultTypeValue, params)
 }
@@ -186,15 +200,18 @@ func (o *osmBase) SelectValue(sql string, params ...interface{}) func(containers
 //
 // 查出的结果为多行,并存入不定长的变量上(...，每个都为array)，元素可以是指针，如var r1,r2 []string、var r1,r2 []*string都允许
 //
-//代码
-//   var emails []string
-//   _, err = o.SelectValues(`SELECT email FROM res_user WHERE id in #{Ids};`, []int64{1, 2})(&emails)
-//   if err != nil {
-// 	   log.Println(err)
-//   }
-//   log.Printf("emails: %v \n", emails)
-//结果
-//   emails: [test@foxmail.com test@foxmail.com]
+// 代码
+//
+//	  var emails []string
+//	  _, err = o.SelectValues(`SELECT email FROM res_user WHERE id in #{Ids};`, []int64{1, 2})(&emails)
+//	  if err != nil {
+//		   log.Println(err)
+//	  }
+//	  log.Printf("emails: %v \n", emails)
+//
+// 结果
+//
+//	emails: [test@foxmail.com test@foxmail.com]
 func (o *osmBase) SelectValues(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	return o.selectBySQL(sql, resultTypeValues, params)
 }
@@ -203,15 +220,18 @@ func (o *osmBase) SelectValues(sql string, params ...interface{}) func(container
 //
 // 查出的结果为单行,并存入struct，可以是指针，如var r User、var r *User
 //
-//代码
-//   var users []ResUser
-//   _, err = o.SelectStruct(`SELECT id,email,create_time FROM res_user WHERE id=#{Id};`, 1)(&users)
-//   if err != nil {
-// 	   log.Println(err)
-//   }
-//   log.Printf("user: %#v \n", users)
-//结果
-//   user: ResUser{ID:1, Email:"test@foxmail.com", Mobile:"", Nickname:""}
+// 代码
+//
+//	  var users []ResUser
+//	  _, err = o.SelectStruct(`SELECT id,email,create_time FROM res_user WHERE id=#{Id};`, 1)(&users)
+//	  if err != nil {
+//		   log.Println(err)
+//	  }
+//	  log.Printf("user: %#v \n", users)
+//
+// 结果
+//
+//	user: ResUser{ID:1, Email:"test@foxmail.com", Mobile:"", Nickname:""}
 func (o *osmBase) SelectStruct(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	return o.selectBySQL(sql, resultTypeStruct, params)
 }
@@ -220,15 +240,18 @@ func (o *osmBase) SelectStruct(sql string, params ...interface{}) func(container
 //
 // 查出的结果为多行,并存入struct array，元素可以是指针，如var r []User、var r []*User
 //
-//代码
-//   var users []ResUser
-//   _, err = o.SelectStructs(`SELECT id,email,create_time FROM res_user WHERE id=#{Id};`, 1)(&users)
-//   if err != nil {
-// 	   log.Println(err)
-//   }
-//   log.Printf("users: %#v \n", users)
-//结果
-//   users: []ResUser{ResUser{ID:1, Email:"test@foxmail.com", Mobile:"", Nickname:""}}
+// 代码
+//
+//	  var users []ResUser
+//	  _, err = o.SelectStructs(`SELECT id,email,create_time FROM res_user WHERE id=#{Id};`, 1)(&users)
+//	  if err != nil {
+//		   log.Println(err)
+//	  }
+//	  log.Printf("users: %#v \n", users)
+//
+// 结果
+//
+//	users: []ResUser{ResUser{ID:1, Email:"test@foxmail.com", Mobile:"", Nickname:""}}
 func (o *osmBase) SelectStructs(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	return o.selectBySQL(sql, resultTypeStructs, params)
 }
@@ -237,15 +260,18 @@ func (o *osmBase) SelectStructs(sql string, params ...interface{}) func(containe
 //
 // 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)，Key、Value可以是指针，如var r map[string]time.Time、var r map[*string]time.Time、var r map[string]*time.Time
 //
-//代码
-//   var idEmailMap = map[int64]string{}
-//   _, err = o.SelectKVS(`SELECT id,email FROM res_user WHERE id in #{Ids};`, []int64{1, 2})(&idEmailMap)
-//   if err != nil {
-// 	  log.Println(err)
-//   }
-//   log.Printf("idEmailMap: %v \n", idEmailMap)
-//结果
-//   idEmailMap: map[1:test@foxmail.com 2:test@foxmail.com]
+// 代码
+//
+//	  var idEmailMap = map[int64]string{}
+//	  _, err = o.SelectKVS(`SELECT id,email FROM res_user WHERE id in #{Ids};`, []int64{1, 2})(&idEmailMap)
+//	  if err != nil {
+//		  log.Println(err)
+//	  }
+//	  log.Printf("idEmailMap: %v \n", idEmailMap)
+//
+// 结果
+//
+//	idEmailMap: map[1:test@foxmail.com 2:test@foxmail.com]
 func (o *osmBase) SelectKVS(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	return o.selectBySQL(sql, resultTypeKvs, params)
 }
@@ -254,17 +280,20 @@ func (o *osmBase) SelectKVS(sql string, params ...interface{}) func(containers .
 //
 // 查出的结果为多行，查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
 //
-//代码
-//   var columns []string
-//   var datas [][]string
-//   _, err = o.SelectStrings(`SELECT id,email FROM res_user WHERE id in #{Ids};`, []int64{1, 2})(&columns, &datas)
-//   if err != nil {
-// 	  log.Println(err)
-//   }
-//   log.Printf("columns: %v，datas: %v \n", columns, datas)
-//结果
-//   columns: ["id", "email"]
-//   datas: [["1",'test@foxmail.com'],["2","test@foxmail.com"]]
+// 代码
+//
+//	  var columns []string
+//	  var datas [][]string
+//	  _, err = o.SelectStrings(`SELECT id,email FROM res_user WHERE id in #{Ids};`, []int64{1, 2})(&columns, &datas)
+//	  if err != nil {
+//		  log.Println(err)
+//	  }
+//	  log.Printf("columns: %v，datas: %v \n", columns, datas)
+//
+// 结果
+//
+//	columns: ["id", "email"]
+//	datas: [["1",'test@foxmail.com'],["2","test@foxmail.com"]]
 func (o *osmBase) SelectStrings(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
 	return o.selectBySQL(sql, resultTypeStrings, params)
 }
@@ -272,8 +301,8 @@ func (o *osmBase) SelectStrings(sql string, params ...interface{}) func(containe
 func (o *osmBase) selectBySQL(sql, resultType string, params []interface{}) func(containers ...interface{}) (int64, error) {
 	now := time.Now()
 	func(start time.Time) {
-		if time.Since(start) > slowLogDuration {
-			errorLogger.Warn("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+		if time.Since(start) > o.options.SlowLogDuration {
+			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
@@ -341,10 +370,10 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 		sqls := []*sqlFragment{}
 		paramNames := []*sqlFragment{}
 		defer func() {
-			if showSQL {
+			if o.options.ShowSQL {
 				params, _ := json.Marshal(param)
 				sqlParams, _ := json.Marshal(sqlParams)
-				infoLogger.Info("readSQLParamsBySQL showSql", map[string]string{"sql": sqlOrg, "params": string(params), "dbSql": sql, "dbParams": string(sqlParams)})
+				o.options.InfoLogger.Log("readSQLParamsBySQL showSql", map[string]string{"sql": sqlOrg, "params": string(params), "dbSql": sql, "dbParams": string(sqlParams)})
 			}
 		}()
 		sqlTemp := sqlOrg
@@ -370,7 +399,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 				sqlTemp = sqlTemp[ei+1:]
 				errorIndex += ei + 1
 			} else {
-				errorLogger.Error("sql read error", map[string]string{"error": markSQLError(sqlOrg, errorIndex).Error()})
+				o.options.ErrorLogger.Log("sql read error", map[string]string{"error": markSQLError(sqlOrg, errorIndex).Error()})
 				return
 			}
 		}
@@ -478,8 +507,8 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 		sql = strings.Join(sqlTexts, "")
 	} else {
 		sql = sqlOrg
-		if showSQL {
-			infoLogger.Info("readSQLParamsBySQL showSql", map[string]string{"sql": sql})
+		if o.options.ShowSQL {
+			o.options.InfoLogger.Log("readSQLParamsBySQL showSql", map[string]string{"sql": sql})
 		}
 	}
 	return

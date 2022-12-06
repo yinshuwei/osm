@@ -44,7 +44,7 @@ func resultValue(o *osmBase, id, sql string, sqlParams []interface{}, containers
 			return 0, fmt.Errorf("sql '%s' error : value类型Query，查询结果的长度与SQL的长度不一致", id)
 		}
 
-		err = scanRow(rows, isPtrs, elementTypes, values)
+		err = o.scanRow(rows, isPtrs, elementTypes, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

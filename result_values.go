@@ -54,7 +54,7 @@ func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, container
 		for i := 0; i < lenContainers; i++ {
 			objs[i] = reflect.New(elementTypes[i]).Elem()
 		}
-		err = scanRow(rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(rows, isPtrs, elementTypes, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

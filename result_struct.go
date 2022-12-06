@@ -52,7 +52,7 @@ func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container
 				values[i] = reflect.ValueOf(&a).Elem()
 			}
 		}
-		err = scanRow(rows, isPtrs, elementTypes, values)
+		err = o.scanRow(rows, isPtrs, elementTypes, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

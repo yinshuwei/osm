@@ -16,17 +16,6 @@ const (
 	dbTypeMssql    = 2
 )
 
-var (
-	errorLogger Logger = &DefaultLogger{}
-	infoLogger  Logger = &DefaultLogger{}
-
-	// ShowSQL 显示执行的sql，用于调试，使用logger打印
-	showSQL = false
-
-	// SlowLogDuration 慢查询时间阈值
-	slowLogDuration = 500 * time.Millisecond
-)
-
 type dbRunner interface {
 	Prepare(query string) (*sql.Stmt, error)
 	Exec(query string, args ...interface{}) (sql.Result, error)
@@ -35,8 +24,9 @@ type dbRunner interface {
 }
 
 type osmBase struct {
-	db     dbRunner
-	dbType int
+	db      dbRunner
+	dbType  int
+	options *Options
 }
 
 // Osm 对象，通过Struct、Map、Array、value等对象以及Sql Map来操作数据库。可以开启事务。
@@ -49,30 +39,58 @@ type Tx struct {
 	osmBase
 }
 
-func ConfLogger(_infoLogger, _errorLogger Logger, _showSQL bool, _slowLogDuration time.Duration) {
-	infoLogger = _infoLogger
-	errorLogger = _errorLogger
-	showSQL = _showSQL
-	slowLogDuration = _slowLogDuration
-}
-
+// Options 连接选项和日志设置
 type Options struct {
 	MaxIdleConns    int
 	MaxOpenConns    int
 	ConnMaxLifetime time.Duration
 	ConnMaxIdleTime time.Duration
+
+	// Warn日志
+	WarnLogger Logger
+	// Error日志
+	ErrorLogger Logger
+	// Info日志
+	InfoLogger Logger
+	// ShowSQL 显示执行的sql，用于调试，使用logger打印
+	ShowSQL bool
+	// SlowLogDuration 慢查询时间阈值
+	SlowLogDuration time.Duration
+}
+
+func (options *Options) tidy() {
+	if options.WarnLogger == nil {
+		options.WarnLogger = &DefaultLogger{}
+	}
+	if options.ErrorLogger == nil {
+		options.ErrorLogger = &DefaultLogger{}
+	}
+	if options.InfoLogger == nil {
+		options.InfoLogger = &DefaultLogger{}
+	}
+
+	if options.SlowLogDuration == 0 {
+		options.SlowLogDuration = 500 * time.Millisecond
+	}
 }
 
 // New 创建一个新的Osm，这个过程会打开数据库连接。
 //
-//driverName是数据库驱动名称如"mysql".
-//dataSource是数据库连接信息如"root:root@/51jczj?charset=utf8".
-//options是数据连接的参数，MaxIdleConns, MaxOpenConns, ConnMaxLifetime, ConnMaxIdleTime
+// driverName是数据库驱动名称如"mysql".
+// dataSource是数据库连接信息如"root:root@/51jczj?charset=utf8".
+// options是数据连接的参数，MaxIdleConns, MaxOpenConns, ConnMaxLifetime, ConnMaxIdleTime
 //
-//如：
-//  o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", 50, 100)
+// 如：
+//
+//	o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", 50, 100)
 func New(driverName, dataSource string, options Options) (*Osm, error) {
-	osm := new(Osm)
+	options.tidy()
+	osm := &Osm{
+		osmBase: osmBase{
+			options: &options,
+		},
+	}
+
 	db, err := sql.Open(driverName, dataSource)
 
 	if err != nil {
@@ -92,7 +110,7 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 		for {
 			err := db.Ping()
 			if err != nil {
-				errorLogger.Warn("osm Ping fail", map[string]string{"error": err.Error()})
+				osm.options.WarnLogger.Log("osm Ping fail", map[string]string{"error": err.Error()})
 			}
 			time.Sleep(time.Minute)
 		}
@@ -129,11 +147,13 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 
 // Begin 打开事务
 //
-//如：
-//  tx, err := o.Begin()
+// 如：
+//
+//	tx, err := o.Begin()
 func (o *Osm) Begin() (*Tx, error) {
 	tx := new(Tx)
 	tx.dbType = o.dbType
+	tx.options = o.options
 
 	if o.db == nil {
 		return nil, fmt.Errorf("db no opened")
@@ -154,8 +174,9 @@ func (o *Osm) Begin() (*Tx, error) {
 
 // Close 与数据库断开连接，释放连接资源
 //
-//如：
-//  err := o.Close()
+// 如：
+//
+//	err := o.Close()
 func (o *Osm) Close() error {
 	if o.db == nil {
 		return fmt.Errorf("db no opened")
@@ -171,8 +192,9 @@ func (o *Osm) Close() error {
 
 // Commit 提交事务
 //
-//如：
-//  err := tx.Commit()
+// 如：
+//
+//	err := tx.Commit()
 func (o *Tx) Commit() error {
 	if o.db == nil {
 		return fmt.Errorf("tx no runing")
@@ -186,8 +208,9 @@ func (o *Tx) Commit() error {
 
 // Rollback 事务回滚
 //
-//如：
-//  err := tx.Rollback()
+// 如：
+//
+//	err := tx.Rollback()
 func (o *Tx) Rollback() error {
 	if o.db == nil {
 		return fmt.Errorf("tx no runing")

@@ -87,7 +87,7 @@ func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, containe
 			}
 		}
 		// 读取一行数据到成员实例切片中
-		err = scanRow(rows, isPtrs, elementTypes, values)
+		err = o.scanRow(rows, isPtrs, elementTypes, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

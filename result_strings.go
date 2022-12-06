@@ -84,7 +84,7 @@ func resultStrings(o *osmBase, id, sql string, sqlParams []interface{}, columnsC
 		for i := 0; i < columnsCount; i++ {
 			objs[i] = reflect.New(stringType).Elem()
 		}
-		err = scanRow(rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(rows, isPtrs, elementTypes, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

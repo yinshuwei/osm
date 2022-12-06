@@ -40,7 +40,7 @@ func resultKvs(o *osmBase, id, sql string, sqlParams []interface{}, container in
 			reflect.New(elementTypes[0]).Elem(),
 			reflect.New(elementTypes[1]).Elem(),
 		}
-		err = scanRow(rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(rows, isPtrs, elementTypes, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
