@@ -34,7 +34,7 @@ _, err = o.SelectXXX(sql, params...)(&result...)
 
 ```
 require (
-	github.com/yinshuwei/osm/v2 v2.0.2
+	github.com/yinshuwei/osm/v2 v2.0.4
 )
 ```
 
