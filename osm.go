@@ -76,13 +76,23 @@ func (options *Options) tidy() {
 
 // New 创建一个新的Osm，这个过程会打开数据库连接。
 //
-// driverName是数据库驱动名称如"mysql".
-// dataSource是数据库连接信息如"root:root@/51jczj?charset=utf8".
-// options是数据连接的参数，MaxIdleConns, MaxOpenConns, ConnMaxLifetime, ConnMaxIdleTime
+// driverName 是数据库驱动名称如"mysql".
+// dataSource 是数据库连接信息如"root:root@/text?charset=utf8".
+// options 是数据连接选项和日志设置
 //
 // 如：
 //
-//	o, err := osm.New("mysql", "root:root@/51jczj?charset=utf8", 50, 100)
+//	o, err := osm.New("mysql", "root:root@/text?charset=utf8", osm.Options{
+//		MaxIdleConns:    50,
+//		MaxOpenConns:    100,
+//		ConnMaxLifetime: 5 * time.Minute,
+//		ConnMaxIdleTime: 5 * time.Minute,
+//		WarnLogger:      &WarnLoggor{errorLogger},  // Logger
+//		ErrorLogger:     &ErrorLogger{errorLogger}, // Logger
+//		InfoLogger:      &InfoLogger{infoLogger},   // Logger
+//		ShowSQL:         true,                      // bool
+//		SlowLogDuration: 500 * time.Millisecond,    // time.Duration
+//	})
 func New(driverName, dataSource string, options Options) (*Osm, error) {
 	options.tidy()
 	osm := &Osm{
