@@ -117,6 +117,7 @@ func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr b
 		return nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		s := asString(src)
+		s = trimZeroDecimal(s)
 		i64, err := strconv.ParseInt(s, 10, destType.Bits())
 		if err != nil {
 			o.options.WarnLogger.Log("convertAssign Int error", map[string]string{"error": err.Error()})
@@ -125,6 +126,7 @@ func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr b
 		return nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		s := asString(src)
+		s = trimZeroDecimal(s)
 		u64, err := strconv.ParseUint(s, 10, destType.Bits())
 		if err != nil {
 			o.options.WarnLogger.Log("convertAssign Uint error", map[string]string{"error": err.Error()})
@@ -219,4 +221,21 @@ func asBytes(buf []byte, rv reflect.Value) (b []byte, ok bool) {
 		return append(buf, s...), true
 	}
 	return
+}
+
+func trimZeroDecimal(s string) string {
+	var foundZero bool
+	for i := len(s); i > 0; i-- {
+		switch s[i-1] {
+		case '.':
+			if foundZero {
+				return s[:i-1]
+			}
+		case '0':
+			foundZero = true
+		default:
+			return s
+		}
+	}
+	return s
 }
