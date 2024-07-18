@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -35,14 +37,21 @@ const (
 //
 // 删除id为1和2的用户数据
 func (o *osmBase) Delete(sql string, params ...interface{}) (int64, error) {
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo)
+	}
+
 	now := time.Now()
 	func(start time.Time) {
 		if time.Since(start) > o.options.SlowLogDuration {
-			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+			o.options.WarnLogger.Log(logPrefix+"slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
-	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
+	sql, sqlParams, err := o.readSQLParamsBySQL(logPrefix, sql, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -74,14 +83,21 @@ func (o *osmBase) Delete(sql string, params ...interface{}) (int64, error) {
 //
 // 将id为1的用户email更新为"test2@foxmail.com"
 func (o *osmBase) Update(sql string, params ...interface{}) (int64, error) {
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+
 	now := time.Now()
 	func(start time.Time) {
 		if time.Since(start) > o.options.SlowLogDuration {
-			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+			o.options.WarnLogger.Log(logPrefix+"slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
-	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
+	sql, sqlParams, err := o.readSQLParamsBySQL(logPrefix, sql, params...)
 	if err != nil {
 		return 0, err
 	}
@@ -108,14 +124,21 @@ func (o *osmBase) Update(sql string, params ...interface{}) (int64, error) {
 //
 // 将id为3和4的用户email更新为"test@foxmail.com"
 func (o *osmBase) UpdateMulti(sql string, params ...interface{}) error {
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+
 	now := time.Now()
 	func(start time.Time) {
 		if time.Since(start) > o.options.SlowLogDuration {
-			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+			o.options.WarnLogger.Log(logPrefix+"slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
-	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
+	sql, sqlParams, err := o.readSQLParamsBySQL(logPrefix, sql, params...)
 	if err != nil {
 		return err
 	}
@@ -142,14 +165,21 @@ func (o *osmBase) UpdateMulti(sql string, params ...interface{}) error {
 //
 // 添加一个用户数据，email为"test@foxmail.com"
 func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error) {
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+
 	now := time.Now()
 	func(start time.Time) {
 		if time.Since(start) > o.options.SlowLogDuration {
-			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+			o.options.WarnLogger.Log(logPrefix+"slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
-	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
+	sql, sqlParams, err := o.readSQLParamsBySQL(logPrefix, sql, params...)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -168,7 +198,7 @@ func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error
 	if o.dbType == dbTypeMysql {
 		insertID, err = result.LastInsertId()
 		if err != nil {
-			o.options.ErrorLogger.Log("lastInsertId read error", map[string]string{"error": err.Error()})
+			o.options.ErrorLogger.Log(logPrefix+"lastInsertId read error", map[string]string{"error": err.Error()})
 		}
 	}
 
@@ -193,7 +223,13 @@ func (o *osmBase) Insert(sql string, params ...interface{}) (int64, int64, error
 //
 //	email: test@foxmail.com
 func (o *osmBase) SelectValue(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
-	return o.selectBySQL(sql, resultTypeValue, params)
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+	return o.selectBySQL(logPrefix, sql, resultTypeValue, params)
 }
 
 // SelectValues 执行查询sql
@@ -213,7 +249,13 @@ func (o *osmBase) SelectValue(sql string, params ...interface{}) func(containers
 //
 //	emails: [test@foxmail.com test@foxmail.com]
 func (o *osmBase) SelectValues(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
-	return o.selectBySQL(sql, resultTypeValues, params)
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+	return o.selectBySQL(logPrefix, sql, resultTypeValues, params)
 }
 
 // SelectStruct 执行查询sql
@@ -233,7 +275,13 @@ func (o *osmBase) SelectValues(sql string, params ...interface{}) func(container
 //
 //	user: ResUser{ID:1, Email:"test@foxmail.com", Mobile:"", Nickname:""}
 func (o *osmBase) SelectStruct(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
-	return o.selectBySQL(sql, resultTypeStruct, params)
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+	return o.selectBySQL(logPrefix, sql, resultTypeStruct, params)
 }
 
 // SelectStructs 执行查询sql
@@ -253,7 +301,13 @@ func (o *osmBase) SelectStruct(sql string, params ...interface{}) func(container
 //
 //	users: []ResUser{ResUser{ID:1, Email:"test@foxmail.com", Mobile:"", Nickname:""}}
 func (o *osmBase) SelectStructs(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
-	return o.selectBySQL(sql, resultTypeStructs, params)
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+	return o.selectBySQL(logPrefix, sql, resultTypeStructs, params)
 }
 
 // SelectKVS 执行查询sql
@@ -273,7 +327,13 @@ func (o *osmBase) SelectStructs(sql string, params ...interface{}) func(containe
 //
 //	idEmailMap: map[1:test@foxmail.com 2:test@foxmail.com]
 func (o *osmBase) SelectKVS(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
-	return o.selectBySQL(sql, resultTypeKvs, params)
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+	return o.selectBySQL(logPrefix, sql, resultTypeKvs, params)
 }
 
 // SelectStrings 执行查询sql
@@ -295,18 +355,24 @@ func (o *osmBase) SelectKVS(sql string, params ...interface{}) func(containers .
 //	columns: ["id", "email"]
 //	datas: [["1",'test@foxmail.com'],["2","test@foxmail.com"]]
 func (o *osmBase) SelectStrings(sql string, params ...interface{}) func(containers ...interface{}) (int64, error) {
-	return o.selectBySQL(sql, resultTypeStrings, params)
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+	return o.selectBySQL(logPrefix, sql, resultTypeStrings, params)
 }
 
-func (o *osmBase) selectBySQL(sql, resultType string, params []interface{}) func(containers ...interface{}) (int64, error) {
+func (o *osmBase) selectBySQL(logPrefix, sql, resultType string, params []interface{}) func(containers ...interface{}) (int64, error) {
 	now := time.Now()
 	func(start time.Time) {
 		if time.Since(start) > o.options.SlowLogDuration {
-			o.options.WarnLogger.Log("slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
+			o.options.WarnLogger.Log(logPrefix+"slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
 		}
 	}(now)
 
-	sql, sqlParams, err := o.readSQLParamsBySQL(sql, params...)
+	sql, sqlParams, err := o.readSQLParamsBySQL(logPrefix, sql, params...)
 
 	if err != nil {
 		return func(containers ...interface{}) (int64, error) {
@@ -318,32 +384,32 @@ func (o *osmBase) selectBySQL(sql, resultType string, params []interface{}) func
 		switch resultType {
 		case resultTypeStructs:
 			if len(containers) == 1 {
-				return resultStructs(o, sql, sql, sqlParams, containers[0])
+				return resultStructs(logPrefix, o, sql, sql, sqlParams, containers[0])
 			}
 			err = fmt.Errorf("sql '%s' error : resultTypeStructs ,len(containers) != 1", sql)
 		case resultTypeStruct:
 			if len(containers) == 1 {
-				return resultStruct(o, sql, sql, sqlParams, containers[0])
+				return resultStruct(logPrefix, o, sql, sql, sqlParams, containers[0])
 			}
 			err = fmt.Errorf("sql '%s' error : resultTypeStruct ,len(containers) != 1", sql)
 		case resultTypeValue:
 			if len(containers) > 0 {
-				return resultValue(o, sql, sql, sqlParams, containers)
+				return resultValue(logPrefix, o, sql, sql, sqlParams, containers)
 			}
 			err = fmt.Errorf("sql '%s' error : resultTypeValue ,len(containers) < 1", sql)
 		case resultTypeValues:
 			if len(containers) > 0 {
-				return resultValues(o, sql, sql, sqlParams, containers)
+				return resultValues(logPrefix, o, sql, sql, sqlParams, containers)
 			}
 			err = fmt.Errorf("sql '%s' error : resultTypeValues ,len(containers) < 1", sql)
 		case resultTypeKvs:
 			if len(containers) == 1 {
-				return resultKvs(o, sql, sql, sqlParams, containers[0])
+				return resultKvs(logPrefix, o, sql, sql, sqlParams, containers[0])
 			}
 			err = fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 1", sql)
 		case resultTypeStrings:
 			if len(containers) == 2 {
-				return resultStrings(o, sql, sql, sqlParams, containers[0], containers[1])
+				return resultStrings(logPrefix, o, sql, sql, sqlParams, containers[0], containers[1])
 			}
 			err = fmt.Errorf("sql '%s' error : resultTypeStrings ,len(containers) != 2", sql)
 		}
@@ -356,7 +422,7 @@ func (o *osmBase) selectBySQL(sql, resultType string, params []interface{}) func
 	return callback
 }
 
-func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql string, sqlParams []interface{}, err error) {
+func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...interface{}) (sql string, sqlParams []interface{}, err error) {
 	var param interface{}
 	paramsSize := len(params)
 	if paramsSize > 0 {
@@ -373,7 +439,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 			if o.options.ShowSQL {
 				params, _ := json.Marshal(param)
 				sqlParams, _ := json.Marshal(sqlParams)
-				o.options.InfoLogger.Log("readSQLParamsBySQL showSql", map[string]string{"sql": sqlOrg, "params": string(params), "dbSql": sql, "dbParams": string(sqlParams)})
+				o.options.InfoLogger.Log(logPrefix+"readSQLParamsBySQL showSql", map[string]string{"sql": sqlOrg, "params": string(params), "dbSql": sql, "dbParams": string(sqlParams)})
 			}
 		}()
 		sqlTemp := sqlOrg
@@ -399,7 +465,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 				sqlTemp = sqlTemp[ei+1:]
 				errorIndex += ei + 1
 			} else {
-				o.options.ErrorLogger.Log("sql read error", map[string]string{"error": markSQLError(sqlOrg, errorIndex).Error()})
+				o.options.ErrorLogger.Log(logPrefix+"sql read error", map[string]string{"error": markSQLError(sqlOrg, errorIndex).Error()})
 				return
 			}
 		}
@@ -508,7 +574,7 @@ func (o *osmBase) readSQLParamsBySQL(sqlOrg string, params ...interface{}) (sql 
 	} else {
 		sql = sqlOrg
 		if o.options.ShowSQL {
-			o.options.InfoLogger.Log("readSQLParamsBySQL showSql", map[string]string{"sql": sql})
+			o.options.InfoLogger.Log(logPrefix+"readSQLParamsBySQL showSql", map[string]string{"sql": sql})
 		}
 	}
 	return

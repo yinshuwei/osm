@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func resultValue(o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
+func resultValue(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
 	lenContainers := len(containers)
 	values := make([]reflect.Value, lenContainers)
 	elementTypes := make([]reflect.Type, lenContainers)
@@ -44,7 +44,7 @@ func resultValue(o *osmBase, id, sql string, sqlParams []interface{}, containers
 			return 0, fmt.Errorf("sql '%s' error : value类型Query，查询结果的长度与SQL的长度不一致", id)
 		}
 
-		err = o.scanRow(rows, isPtrs, elementTypes, values)
+		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

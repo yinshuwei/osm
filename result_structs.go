@@ -6,7 +6,7 @@ import (
 )
 
 // resultStructs 数据库结果读入到struct切片中，struct可以是指针类型或非指针类型
-func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
+func resultStructs(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
 	// 获得反射后结果的指针(这里应该是一个切片的指针)
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
@@ -87,7 +87,7 @@ func resultStructs(o *osmBase, id, sql string, sqlParams []interface{}, containe
 			}
 		}
 		// 读取一行数据到成员实例切片中
-		err = o.scanRow(rows, isPtrs, elementTypes, values)
+		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

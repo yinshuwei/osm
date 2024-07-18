@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func resultKvs(o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
+func resultKvs(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
 		return 0, fmt.Errorf("sql '%s' error : kvs类型Query，查询结果类型应为map的指针，而您传入的并不是指针", id)
@@ -40,7 +40,7 @@ func resultKvs(o *osmBase, id, sql string, sqlParams []interface{}, container in
 			reflect.New(elementTypes[0]).Elem(),
 			reflect.New(elementTypes[1]).Elem(),
 		}
-		err = o.scanRow(rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

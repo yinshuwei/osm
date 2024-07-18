@@ -186,6 +186,7 @@ func findFiled(allFieldNameTypeMap map[string]*reflect.Type, name string) (strin
 
 // scanRow 从sql.Rows中读一行数据
 func (o *osmBase) scanRow(
+	logPrefix string,
 	rows *sql.Rows,
 	isPtrs []bool,
 	elementTypes []reflect.Type,
@@ -214,7 +215,7 @@ func (o *osmBase) scanRow(
 		if src == nil {
 			continue
 		}
-		o.convertAssign(values[i], *src, isPtrs[i], types[i])
+		o.convertAssign(logPrefix, values[i], *src, isPtrs[i], types[i])
 	}
 	return nil
 }

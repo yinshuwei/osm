@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
+func resultStruct(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, container interface{}) (int64, error) {
 	pointValue := reflect.ValueOf(container)
 	if pointValue.Kind() != reflect.Ptr {
 		return 0, fmt.Errorf("sql '%s' error : struct类型Query，查询结果类型应为struct的指针，而您传入的并不是指针", id)
@@ -52,7 +52,7 @@ func resultStruct(o *osmBase, id, sql string, sqlParams []interface{}, container
 				values[i] = reflect.ValueOf(&a).Elem()
 			}
 		}
-		err = o.scanRow(rows, isPtrs, elementTypes, values)
+		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

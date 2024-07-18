@@ -47,7 +47,7 @@ func checkDatas(datas interface{}) *reflect.Value {
 }
 
 // resultStrings 数据库结果读入到columns，和datas。columns为[]string，datas为[][]string。
-func resultStrings(o *osmBase, id, sql string, sqlParams []interface{}, columnsContainer, datasContainer interface{}) (int64, error) {
+func resultStrings(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, columnsContainer, datasContainer interface{}) (int64, error) {
 	columnsValue := checkColumns(columnsContainer)
 	if columnsValue == nil {
 		return 0, fmt.Errorf("sql '%s' error : strings类型Query，查询结果类型第一个为[]string的指针，第二个为[][]string的指针", id)
@@ -84,7 +84,7 @@ func resultStrings(o *osmBase, id, sql string, sqlParams []interface{}, columnsC
 		for i := 0; i < columnsCount; i++ {
 			objs[i] = reflect.New(stringType).Elem()
 		}
-		err = o.scanRow(rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

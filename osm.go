@@ -5,7 +5,10 @@ package osm
 import (
 	"database/sql"
 	"fmt"
+	"path"
 	"reflect"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -94,6 +97,13 @@ func (options *Options) tidy() {
 //		SlowLogDuration: 500 * time.Millisecond,    // time.Duration
 //	})
 func New(driverName, dataSource string, options Options) (*Osm, error) {
+	logPrefix := ""
+	_, file, lineNo, ok := runtime.Caller(1)
+	if ok {
+		fileName := path.Base(file)
+		logPrefix = fileName + ":" + strconv.Itoa(lineNo)
+	}
+
 	options.tidy()
 	osm := &Osm{
 		osmBase: osmBase{
@@ -120,7 +130,7 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 		for {
 			err := db.Ping()
 			if err != nil {
-				osm.options.WarnLogger.Log("osm Ping fail", map[string]string{"error": err.Error()})
+				osm.options.WarnLogger.Log(logPrefix+"osm Ping fail", map[string]string{"error": err.Error()})
 			}
 			time.Sleep(time.Minute)
 		}

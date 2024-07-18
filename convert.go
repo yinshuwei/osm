@@ -38,7 +38,7 @@ func setValueConvert(isPtr bool, dest reflect.Value, value interface{}, destType
 // convertAssign copies to dest the value in src, converting it if possible.
 // An error is returned if the copy would result in loss of information.
 // dest should be a pointer type.
-func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr bool, destType reflect.Type) error {
+func (o *osmBase) convertAssign(logPrefix string, dest reflect.Value, src interface{}, destIsPtr bool, destType reflect.Type) error {
 	switch s := src.(type) {
 	case string:
 		switch destType.Kind() {
@@ -110,7 +110,7 @@ func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr b
 	case reflect.Bool:
 		bv, err := driver.Bool.ConvertValue(src)
 		if err != nil {
-			o.options.WarnLogger.Log("convertAssign Bool error", map[string]string{"error": err.Error()})
+			o.options.WarnLogger.Log(logPrefix+"convertAssign Bool error", map[string]string{"error": err.Error()})
 			bv = false
 		}
 		setValue(destIsPtr, dest, bv.(bool), destType)
@@ -120,7 +120,7 @@ func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr b
 		s = trimZeroDecimal(s)
 		i64, err := strconv.ParseInt(s, 10, destType.Bits())
 		if err != nil {
-			o.options.WarnLogger.Log("convertAssign Int error", map[string]string{"error": err.Error()})
+			o.options.WarnLogger.Log(logPrefix+"convertAssign Int error", map[string]string{"error": err.Error()})
 		}
 		dest.SetInt(i64)
 		return nil
@@ -129,7 +129,7 @@ func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr b
 		s = trimZeroDecimal(s)
 		u64, err := strconv.ParseUint(s, 10, destType.Bits())
 		if err != nil {
-			o.options.WarnLogger.Log("convertAssign Uint error", map[string]string{"error": err.Error()})
+			o.options.WarnLogger.Log(logPrefix+"convertAssign Uint error", map[string]string{"error": err.Error()})
 		}
 		dest.SetUint(u64)
 		return nil
@@ -137,7 +137,7 @@ func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr b
 		s := asString(src)
 		f64, err := strconv.ParseFloat(s, destType.Bits())
 		if err != nil {
-			o.options.WarnLogger.Log("convertAssign Float error", map[string]string{"error": err.Error()})
+			o.options.WarnLogger.Log(logPrefix+"convertAssign Float error", map[string]string{"error": err.Error()})
 		}
 		dest.SetFloat(f64)
 		return nil
@@ -170,14 +170,14 @@ func (o *osmBase) convertAssign(dest reflect.Value, src interface{}, destIsPtr b
 					t = t.Local()
 					setValue(destIsPtr, dest, t, destType)
 				} else {
-					o.options.WarnLogger.Log("convertAssign Time error", map[string]string{"error": err.Error()})
+					o.options.WarnLogger.Log(logPrefix+"convertAssign Time error", map[string]string{"error": err.Error()})
 				}
 			}
 			return nil
 		}
 	}
 
-	o.options.WarnLogger.Log(fmt.Sprintf("unsupported Scan, storing driver.Value type %T into type %T", src, dest), nil)
+	o.options.WarnLogger.Log(logPrefix+fmt.Sprintf("unsupported Scan, storing driver.Value type %T into type %T", src, dest), nil)
 	return nil
 }
 

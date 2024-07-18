@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
+func resultValues(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
 	lenContainers := len(containers)
 	values := make([]reflect.Value, lenContainers)
 	elementTypes := make([]reflect.Type, lenContainers)
@@ -54,7 +54,7 @@ func resultValues(o *osmBase, id, sql string, sqlParams []interface{}, container
 		for i := 0; i < lenContainers; i++ {
 			objs[i] = reflect.New(elementTypes[i]).Elem()
 		}
-		err = o.scanRow(rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
