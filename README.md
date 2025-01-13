@@ -126,10 +126,14 @@ func (l *WarnLoggor) Log(msg string, data map[string]string) {
 
 // User 用户Model
 type User struct {
-    ID         int64
-    Email      string
-    Nickname   string
-    CreateTime time.Time
+	ID         int64
+	Nickname   string `db:"name"`
+	CreateTime time.Time
+	EmailStruct // 匿名属性
+}
+
+type EmailStruct struct {
+	Email string `db:"email"`
 }
 
 func main() {
@@ -151,7 +155,9 @@ func main() {
 
 	//添加
 	user := User{
-		Email:      "test@foxmail.com",
+		EmailStruct: EmailStruct{
+			Email: "test@foxmail.com",
+		},
 		Nickname:   "haha",
 		CreateTime: time.Now(),
 	}
@@ -163,10 +169,12 @@ func main() {
 
 	//更新
 	user = User{
-		Email:    "test@foxmail.com",
+		EmailStruct: EmailStruct{
+			Email: "test@foxmail.com",
+		},
 		Nickname: "hello",
 	}
-	count, err = o.Update("UPDATE user SET nickname=#{Nickname} WHERE email=#{Email}", user)
+	count, err = o.Update("UPDATE user SET nickname=#{name} WHERE email=#{Email}", user)
 	if err != nil {
 		logger.Error("update error", zap.Error(err))
 	}
@@ -174,10 +182,12 @@ func main() {
 
 	//查询
 	user = User{
-		Email: "test@foxmail.com",
+		EmailStruct: EmailStruct{
+			Email: "test@foxmail.com",
+		},
 	}
 	var results []User
-	count, err = o.SelectStructs("SELECT id,email,nickname,create_time FROM user WHERE email=#{Email};", user)(&results)
+	count, err = o.SelectStructs("SELECT id,email,nickname,create_time FROM user WHERE email=#{Email} or email=#{email};", user)(&results)
 	if err != nil {
 		logger.Error("test select", zap.Error(err))
 	}
@@ -202,14 +212,14 @@ func main() {
 结果
 
 ```log
-2022-02-18T18:46:54.347+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"haha","CreateTime":"2022-02-18T18:46:54.346897988+08:00"}, dbSql: INSERT INTO user (email,nickname,create_time) VALUES (?,?,?);, dbParams: ["test@foxmail.com","haha","2022-02-18 18:46:54"]
-2022-02-18T18:46:54.348+0800    INFO    osm_demo/main.go:40     test insert     {"id": 2, "count": 1}
-2022-02-18T18:46:54.348+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: UPDATE user SET nickname=#{Nickname} WHERE email=#{Email}, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"hello","CreateTime":"0001-01-01T00:00:00Z"}, dbSql: UPDATE user SET nickname=? WHERE email=?, dbParams: ["hello","test@foxmail.com"]
-2022-02-18T18:46:54.349+0800    INFO    osm_demo/main.go:51     test update     {"count": 1}
-2022-02-18T18:46:54.350+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: SELECT id,email,nickname,create_time FROM user WHERE email=#{Email};, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"","CreateTime":"0001-01-01T00:00:00Z"}, dbSql: SELECT id,email,nickname,create_time FROM user WHERE email=?;, dbParams: ["test@foxmail.com"]
-2022-02-18T18:46:54.350+0800    INFO    osm_demo/main.go:63     test select     {"count": 1, "result": "[{\"ID\":2,\"Email\":\"test@foxmail.com\",\"Nickname\":\"hello\",\"CreateTime\":\"2022-02-18T18:46:54+08:00\"}]"}
-2022-02-18T18:46:54.350+0800    INFO    osm@v1.0.12-0.20220218102134-94591d978e3d/sql.go:311    readSQLParamsBySQL showSql, sql: DELETE FROM user WHERE email=#{Email}, params: {"ID":0,"Email":"test@foxmail.com","Nickname":"","CreateTime":"0001-01-01T00:00:00Z"}, dbSql: DELETE FROM user WHERE email=?, dbParams: ["test@foxmail.com"]
-2022-02-18T18:46:54.351+0800    INFO    osm_demo/main.go:70     test delete     {"count": 1}
+2025-01-13T16:16:41.301+0800    INFO    osmtt/main.go:47        main.go:95, readSQLParamsBySQL showSql  {"dbParams": "[\"test@foxmail.com\",\"haha\",\"2025-01-13 16:16:41\"]", "sql": "INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", "params": "{\"ID\":0,\"Nickname\":\"haha\",\"CreateTime\":\"2025-01-13T16:16:41.301032455+08:00\",\"Email\":\"test@foxmail.com\"}", "dbSql": "INSERT INTO user (email,nickname,create_time) VALUES (?,?,?);"}
+2025-01-13T16:16:41.305+0800    INFO    osmtt/main.go:99        test insert     {"id": 11, "count": 1}
+2025-01-13T16:16:41.305+0800    INFO    osmtt/main.go:47        main.go:108, readSQLParamsBySQL showSql {"dbParams": "[\"hello\",\"test@foxmail.com\"]", "sql": "UPDATE user SET nickname=#{name} WHERE email=#{Email}", "params": "{\"ID\":0,\"Nickname\":\"hello\",\"CreateTime\":\"0001-01-01T00:00:00Z\",\"Email\":\"test@foxmail.com\"}", "dbSql": "UPDATE user SET nickname=? WHERE email=?"}
+2025-01-13T16:16:41.310+0800    INFO    osmtt/main.go:112       test update     {"count": 1}
+2025-01-13T16:16:41.310+0800    INFO    osmtt/main.go:47        main.go:121, readSQLParamsBySQL showSql {"params": "{\"ID\":0,\"Nickname\":\"\",\"CreateTime\":\"0001-01-01T00:00:00Z\",\"Email\":\"test@foxmail.com\"}", "dbSql": "SELECT id,email,nickname,create_time FROM user WHERE email=? or email=?;", "dbParams": "[\"test@foxmail.com\",\"test@foxmail.com\"]", "sql": "SELECT id,email,nickname,create_time FROM user WHERE email=#{Email} or email=#{email};"}
+2025-01-13T16:16:41.310+0800    INFO    osmtt/main.go:126       test select     {"count": 1, "result": "[{\"ID\":11,\"Nickname\":\"hello\",\"CreateTime\":\"2025-01-13T16:16:41+08:00\",\"Email\":\"test@foxmail.com\"}]"}
+2025-01-13T16:16:41.310+0800    INFO    osmtt/main.go:47        main.go:129readSQLParamsBySQL showSql   {"dbParams": "[\"test@foxmail.com\"]", "sql": "DELETE FROM user WHERE email=#{Email}", "params": "{\"ID\":0,\"Nickname\":\"\",\"CreateTime\":\"0001-01-01T00:00:00Z\",\"Email\":\"test@foxmail.com\"}", "dbSql": "DELETE FROM user WHERE email=?"}
+2025-01-13T16:16:41.313+0800    INFO    osmtt/main.go:133       test delete     {"count": 1}
 ```
 
 指针类型支持 nil 示例
