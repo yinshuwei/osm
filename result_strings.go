@@ -65,8 +65,7 @@ func resultStrings(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 
 	var rowsCount int64
 	var columnsCount int
-	var isPtrs []bool
-	var elementTypes []reflect.Type
+	var fields []*structFieldInfo
 	for rows.Next() {
 		if rowsCount == 0 {
 			columns, err := rows.Columns()
@@ -74,9 +73,8 @@ func resultStrings(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 				return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 			}
 			columnsCount = len(columns)
-			isPtrs = make([]bool, columnsCount)
 			for _, column := range columns {
-				elementTypes = append(elementTypes, stringType)
+				fields = append(fields, &structFieldInfo{0, "", &stringType, false, false})
 				(*columnsValue).Set(reflect.Append(*columnsValue, reflect.ValueOf(column)))
 			}
 		}
@@ -84,7 +82,7 @@ func resultStrings(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 		for i := 0; i < columnsCount; i++ {
 			objs[i] = reflect.New(stringType).Elem()
 		}
-		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(logPrefix, rows, fields, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

@@ -57,7 +57,7 @@ func TestToGoNames(t *testing.T) {
 
 func TestGetFieldMap(t *testing.T) {
 	type A struct {
-		Name string
+		Name string `db:"111name222"`
 	}
 
 	type B struct {
@@ -68,11 +68,16 @@ func TestGetFieldMap(t *testing.T) {
 		B
 		Age int64
 	}
-	m := map[string]*reflect.Type{}
-	b := reflect.TypeOf(&C{}).Elem()
 
-	getStructFieldMap(b, m)
-	for k, v := range m {
-		t.Log(k, v)
+	b := reflect.TypeOf(&C{}).Elem()
+	tagMap := make(map[string]*structFieldInfo)
+	nameMap := make(map[string]*structFieldInfo)
+
+	getStructFieldMap(b, tagMap, nameMap, false)
+	for k, v := range tagMap {
+		t.Log(k, v.i, v.n, v.t, v.a, v.isPtr)
+	}
+	for k, v := range nameMap {
+		t.Log(k, v.i, v.n, v.t, v.a, v.isPtr)
 	}
 }

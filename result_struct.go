@@ -31,28 +31,29 @@ func resultStruct(logPrefix string, o *osmBase, id, sql string, sqlParams []inte
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
 		columnsCount := len(columns)
-		elementTypes := make([]reflect.Type, columnsCount)
-		isPtrs := make([]bool, columnsCount)
+		fields := make([]*structFieldInfo, columnsCount) // struct成员的名字，与sql中的列对应
 		values := make([]reflect.Value, columnsCount)
 
 		structType := valueElem.Type()
-		allFieldNameTypeMap := map[string]*reflect.Type{} // struct每个成员的名字，不一定与sql中的列对应
-		getStructFieldMap(structType, allFieldNameTypeMap)
+		tagMap := make(map[string]*structFieldInfo)
+		nameMap := make(map[string]*structFieldInfo)
+		getStructFieldMap(structType, tagMap, nameMap, false)
 
 		for i, col := range columns {
-			filedName, t := findFiled(allFieldNameTypeMap, col)
-			if filedName != "" && t != nil {
-				f := valueElem.FieldByName(filedName)
-				elementTypes[i] = f.Type()
-				isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
-				values[i] = f
+			field := findFiled(tagMap, nameMap, col)
+			fields[i] = field
+			if field != nil {
+				if field.a {
+					values[i] = valueElem.FieldByName(field.n)
+				} else {
+					values[i] = valueElem.Field(field.i)
+				}
 			} else {
 				a := ""
-				elementTypes[i] = reflect.TypeOf(a)
 				values[i] = reflect.ValueOf(&a).Elem()
 			}
 		}
-		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, values)
+		err = o.scanRow(logPrefix, rows, fields, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}
@@ -62,15 +63,4 @@ func resultStruct(logPrefix string, o *osmBase, id, sql string, sqlParams []inte
 	}
 
 	return 1, nil
-}
-
-func getStructFieldMap(t reflect.Type, m map[string]*reflect.Type) {
-	for i := 0; i < t.NumField(); i++ {
-		t := t.Field(i)
-		if t.Anonymous && t.Type.Kind() == reflect.Struct {
-			getStructFieldMap(t.Type, m)
-			continue
-		}
-		m[t.Name] = &(t.Type)
-	}
 }

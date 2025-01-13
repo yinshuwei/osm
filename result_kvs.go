@@ -18,8 +18,14 @@ func resultKvs(logPrefix string, o *osmBase, id, sql string, sqlParams []interfa
 	if value.IsNil() {
 		value.Set(reflect.MakeMap(cType))
 	}
-	elementTypes := []reflect.Type{cType.Key(), cType.Elem()}
-	isPtrs := []bool{elementTypes[0].Kind() == reflect.Ptr, elementTypes[1].Kind() == reflect.Ptr}
+
+	kType := cType.Key()
+	vType := cType.Elem()
+	fields := []*structFieldInfo{
+		{0, "", &kType, false, kType.Kind() == reflect.Ptr},
+		{0, "", &vType, false, vType.Kind() == reflect.Ptr},
+	}
+
 	rows, err := o.db.Query(sql, sqlParams...)
 	if err != nil {
 		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
@@ -37,10 +43,10 @@ func resultKvs(logPrefix string, o *osmBase, id, sql string, sqlParams []interfa
 			}
 		}
 		objs := []reflect.Value{
-			reflect.New(elementTypes[0]).Elem(),
-			reflect.New(elementTypes[1]).Elem(),
+			reflect.New(*(fields[0].t)).Elem(),
+			reflect.New(*(fields[1].t)).Elem(),
 		}
-		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(logPrefix, rows, fields, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

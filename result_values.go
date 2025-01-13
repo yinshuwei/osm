@@ -8,8 +8,9 @@ import (
 func resultValues(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
 	lenContainers := len(containers)
 	values := make([]reflect.Value, lenContainers)
-	elementTypes := make([]reflect.Type, lenContainers)
-	isPtrs := make([]bool, lenContainers)
+	// elementTypes := make([]reflect.Type, lenContainers)
+	// isPtrs := make([]bool, lenContainers)
+	fields := make([]*structFieldInfo, lenContainers)
 	for i, container := range containers {
 		pointValue := reflect.ValueOf(container)
 		if pointValue.Kind() != reflect.Ptr {
@@ -20,13 +21,13 @@ func resultValues(logPrefix string, o *osmBase, id, sql string, sqlParams []inte
 			return 0, fmt.Errorf("sql '%s' error : values类型Query，查询结果类型应为slice的指针，而您传入的第%d个并不是slice", id, i+1)
 		}
 		values[i] = value
-		elementTypes[i] = value.Type().Elem()
-		kind := elementTypes[i].Kind()
-		isPrt := kind == reflect.Ptr
-		isPtrs[i] = isPrt
-		if isPrt {
-			kind = elementTypes[i].Elem().Kind()
+		valueType := value.Type().Elem()
+		kind := valueType.Kind()
+		field := &structFieldInfo{t: &valueType, isPtr: kind == reflect.Ptr}
+		if field.isPtr {
+			kind = valueType.Elem().Kind()
 		}
+		fields[i] = field
 		if !isValueKind(kind) {
 			return 0, fmt.Errorf("sql '%s' error : value类型Query，查询结果类型应为Bool,Int,Int8,Int16,Int32,Int64,Uint,Uint8,Uint16,Uint32,Uint64,Uintptr,Float32,Float64,Complex64,Complex128,String,Time，而您传入的第%d个并不是", id, i+1)
 		}
@@ -52,9 +53,9 @@ func resultValues(logPrefix string, o *osmBase, id, sql string, sqlParams []inte
 		}
 		objs := make([]reflect.Value, lenContainers)
 		for i := 0; i < lenContainers; i++ {
-			objs[i] = reflect.New(elementTypes[i]).Elem()
+			objs[i] = reflect.New(*(fields[i].t)).Elem()
 		}
-		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, objs)
+		err = o.scanRow(logPrefix, rows, fields, objs)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

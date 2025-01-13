@@ -32,13 +32,12 @@ func resultStructs(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 		return 0, fmt.Errorf("sql '%s' error : structs类型Query，查询结果类型应为struct切片的指针，而您传入的并不是struct", id)
 	}
 
-	var rowsCount int64                               // 读取的行数，用于返回
-	var columnsCount int                              // 读取的列数
-	var elementTypes []reflect.Type                   // struct成员的类型，与sql中的列对应
-	var isPtrs []bool                                 // struct成员的类型是否为指针，与sql中的列对应
-	var fieldNames []string                           // struct成员的名字，与sql中的列对应
-	allFieldNameTypeMap := map[string]*reflect.Type{} // struct每个成员的名字，不一定与sql中的列对应
-	getStructFieldMap(structType, allFieldNameTypeMap)
+	var rowsCount int64                      // 读取的行数，用于返回
+	var columnsCount int                     // 读取的列数
+	var fields []*structFieldInfo            // struct成员的名字，与sql中的列对应
+	tagMap := map[string]*structFieldInfo{}  // struct每个成员的tag，优先匹配
+	nameMap := map[string]*structFieldInfo{} // struct每个成员的名字，不一定与sql中的列对应
+	getStructFieldMap(structType, tagMap, nameMap, false)
 
 	// 使用提供的SQL，从数据库读取数据
 	rows, err := o.db.Query(sql, sqlParams...)
@@ -52,42 +51,35 @@ func resultStructs(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 		// 创建建struct实列,用来装这一行数据
 		valueElem := reflect.New(structType).Elem()
 		// 当isPtrs没有内容时,rowsCount,columnsCount,elementTypes,isPtrs,fieldNames的结果
-		if isPtrs == nil {
+		if fields == nil {
 			columns, err := rows.Columns()
 			if err != nil {
 				return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 			}
 			columnsCount = len(columns)
 			// 定义
-			elementTypes = make([]reflect.Type, columnsCount)
-			isPtrs = make([]bool, columnsCount)
-			fieldNames = make([]string, columnsCount)
+			fields = make([]*structFieldInfo, columnsCount)
 			// 计算
 			for i, col := range columns {
-				filedName, t := findFiled(allFieldNameTypeMap, col)
-				fieldNames[i] = filedName
-				if filedName != "" && t != nil {
-					elementTypes[i] = *t
-					isPtrs[i] = elementTypes[i].Kind() == reflect.Ptr
-				} else { // 如果列中有,而struct中没有时，fieldName为""
-					elementTypes[i] = reflect.TypeOf("")
-					fieldNames[i] = ""
-				}
+				fields[i] = findFiled(tagMap, nameMap, col)
 			}
 		}
 		// 通过fieldName,创建struct实列的成员实例切片
 		values := make([]reflect.Value, columnsCount)
-		for i, fieldName := range fieldNames {
-			if fieldNames[i] != "" {
-				f := valueElem.FieldByName(fieldName)
-				values[i] = f
+		for i, field := range fields {
+			if field != nil {
+				if field.a {
+					values[i] = valueElem.FieldByName(field.n)
+				} else {
+					values[i] = valueElem.Field(field.i)
+				}
 			} else {
 				a := ""
 				values[i] = reflect.ValueOf(&a).Elem()
 			}
 		}
 		// 读取一行数据到成员实例切片中
-		err = o.scanRow(logPrefix, rows, isPtrs, elementTypes, values)
+		err = o.scanRow(logPrefix, rows, fields, values)
 		if err != nil {
 			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 		}

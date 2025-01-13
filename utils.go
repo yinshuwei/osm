@@ -171,35 +171,44 @@ func toGoNames(name string) (string, string) {
 	return string(data[:point]), string(dataSpecial[:point])
 }
 
-func findFiled(allFieldNameTypeMap map[string]*reflect.Type, name string) (string, *reflect.Type) {
+func findFiled(tagMap, nameMap map[string]*structFieldInfo, name string) *structFieldInfo {
+	v, ok := tagMap[name]
+	if ok {
+		return v
+	}
+
 	a, b := toGoNames(name)
-	t, ok := allFieldNameTypeMap[a]
+	t, ok := nameMap[a]
 	if ok {
-		return a, t
+		return t
 	}
-	t, ok = allFieldNameTypeMap[b]
+	t, ok = nameMap[b]
 	if ok {
-		return b, t
+		return t
 	}
-	return "", nil
+	return nil
 }
 
 // scanRow 从sql.Rows中读一行数据
 func (o *osmBase) scanRow(
 	logPrefix string,
 	rows *sql.Rows,
-	isPtrs []bool,
-	elementTypes []reflect.Type,
+	fields []*structFieldInfo,
 	values []reflect.Value,
 ) error {
-	lenContainers := len(isPtrs)
+	lenContainers := len(fields)
 	srcs := make([]*interface{}, lenContainers)
 	refs := make([]interface{}, lenContainers)
 	types := make([]reflect.Type, lenContainers)
-	for i, isPtr := range isPtrs {
-		types[i] = elementTypes[i]
-		if isPtr {
-			types[i] = elementTypes[i].Elem()
+	for i, field := range fields {
+		if field == nil {
+			continue
+		}
+
+		if field.isPtr {
+			types[i] = (*(field.t)).Elem()
+		} else {
+			types[i] = *(field.t)
 		}
 		ref := new(interface{})
 		refs[i] = ref
@@ -215,7 +224,11 @@ func (o *osmBase) scanRow(
 		if src == nil {
 			continue
 		}
-		o.convertAssign(logPrefix, values[i], *src, isPtrs[i], types[i])
+		field := fields[i]
+		if field == nil {
+			continue
+		}
+		o.convertAssign(logPrefix, values[i], *src, field.isPtr, types[i])
 	}
 	return nil
 }
@@ -239,4 +252,30 @@ func isValueKind(kind reflect.Kind) bool {
 		kind == reflect.Complex128 ||
 		kind == reflect.String ||
 		kind == reflect.Struct
+}
+
+type structFieldInfo struct {
+	i int           // index
+	n string        // name
+	t *reflect.Type // type
+	a bool          // anonymous
+
+	isPtr bool
+}
+
+func getStructFieldMap(t reflect.Type, tagMap map[string]*structFieldInfo, nameMap map[string]*structFieldInfo, isAnonymous bool) {
+	for i := 0; i < t.NumField(); i++ {
+		t := t.Field(i)
+		if t.Anonymous && t.Type.Kind() == reflect.Struct {
+			getStructFieldMap(t.Type, tagMap, nameMap, true)
+			continue
+		}
+
+		info := &structFieldInfo{i: i, n: t.Name, t: &(t.Type), a: isAnonymous, isPtr: t.Type.Kind() == reflect.Ptr}
+		tag := t.Tag.Get("db")
+		if tag != "" {
+			tagMap[tag] = info
+		}
+		nameMap[t.Name] = info
+	}
 }
