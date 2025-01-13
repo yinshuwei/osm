@@ -201,18 +201,18 @@ func (o *osmBase) scanRow(
 	refs := make([]interface{}, lenContainers)
 	types := make([]reflect.Type, lenContainers)
 	for i, field := range fields {
+		ref := new(interface{})
+		refs[i] = ref
+		srcs[i] = ref
+
 		if field == nil {
 			continue
 		}
-
 		if field.isPtr {
 			types[i] = (*(field.t)).Elem()
 		} else {
 			types[i] = *(field.t)
 		}
-		ref := new(interface{})
-		refs[i] = ref
-		srcs[i] = ref
 	}
 
 	err := rows.Scan(refs...)
