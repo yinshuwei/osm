@@ -500,13 +500,25 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 				}
 			}
 		case kind == reflect.Struct:
+			tagMap := map[string]*structFieldInfo{}
+			nameMap := map[string]*structFieldInfo{}
+			getStructFieldMap(v.Type(), tagMap, nameMap, false)
+
 			for _, paramName := range paramNames {
-				firstChar := paramName.content[0]
-				if firstChar < 'A' || firstChar > 'Z' {
-					err = fmt.Errorf("sql '%s' error : Field '%s' unexported", sqlOrg, paramName.content)
-					return
+				var vv reflect.Value
+				if field, ok := tagMap[paramName.content]; ok {
+					if field.a {
+						vv = v.FieldByName(field.n)
+					} else {
+						vv = v.Field(field.i)
+					}
+				} else if field, ok := nameMap[paramName.content]; ok {
+					if field.a {
+						vv = v.FieldByName(field.n)
+					} else {
+						vv = v.Field(field.i)
+					}
 				}
-				vv := v.FieldByName(paramName.content)
 				if vv.IsValid() {
 					setDataToParamName(paramName, vv)
 				} else {
