@@ -40,7 +40,7 @@ require (
 
 ## api doc
 
-https://pkg.go.dev/github.com/yinshuwei/osm
+https://pkg.go.dev/github.com/yinshuwei/osm/v2
 
 ## Quickstart
 
