@@ -28,7 +28,10 @@ _, err = o.SelectXXX(sql, params...)(&result...)
   - kvs (&emailUsernameMap) 查出的结果为多行,每行有两个字段,前者为 key,后者为 value,存入 map (双列)
   - strings (&columns, &datas) 查出的结果为多行,并存入 columns，和 datas。columns 为[]string，datas 为[][]string（常用于数据交换，如给 python 的 pandas 提供数据源）
 
-- [默认的 struct 字段名与 SQL 列名对应关系](#field_column_mapping)
+- 自由的struct映射
+
+  - 结构体类型的参数和结果会优先读取db-tag，同时也保留了下面的默认映射逻辑
+  - [默认的 struct 字段名与 SQL 列名对应关系](#field_column_mapping)
 
 ## go.mod
 
