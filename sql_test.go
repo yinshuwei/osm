@@ -152,10 +152,13 @@ func BenchmarkReadSQLParamsBySQL(b *testing.B) {
 	sqlOrg := `SELECT id, user, name, age, status, address, other, field1, field2, field3, field4, field5, '#{' as a, '}' as b
 	 FROM users WHERE id IN (#{ids}) AND name = #{name} AND age = #{age} AND status = #{status} AND address = #{address};`
 
-	// 定义示例参数
-	params := []interface{}{
-		[]int{1, 2, 3, 4, 5},
-		"John Doe",
+	// 定义示例参数，使用结构体
+	type Person struct {
+		Ids     []int  `db:"ids"`
+		Name    string `db:"name"`
+		Age     int    `db:"age"`
+		Status  string `db:"status"`
+		Address string `db:"address"`
 	}
 
 	// 记录日志前缀
@@ -163,6 +166,12 @@ func BenchmarkReadSQLParamsBySQL(b *testing.B) {
 
 	// 运行基准测试
 	for i := 0; i < b.N; i++ {
-		_, _, _ = o.readSQLParamsBySQL(logPrefix, sqlOrg, params...)
+		_, _, _ = o.readSQLParamsBySQL(logPrefix, sqlOrg, Person{
+			Ids:     []int{1, 2, 3},
+			Name:    "John",
+			Age:     30,
+			Status:  "active",
+			Address: "123 Main St",
+		})
 	}
 }
