@@ -39,6 +39,7 @@ count, err := o.SelectStructs("SELECT * FROM users WHERE age > #{Age}", 18)(&use
 
 | 方法类型 | 说明 | 使用场景 |
 |---------|------|---------|
+| `Value` / `Values` | 单行/多行多列值 | 查询多列不同类型的值 |
 | `Struct` / `Structs` | 单行/多行结构体 | 对象映射 |
 | `String` / `Strings` | 单个/多个字符串 | 简单字段查询 |
 | `Int` / `Ints` | 单个/多个整数 | 统计查询 |
@@ -88,6 +89,11 @@ count, err := o.Select("SELECT COUNT(*) FROM users").Int()
 
 // 查询字符串
 email, err := o.Select("SELECT email FROM users WHERE id = #{Id}", 1).String()
+
+// 查询多列不同类型的值
+var id int64
+var username string
+_, err := o.Select("SELECT id, username FROM users WHERE id = #{Id}", 1).Value(&id, &username)
 ```
 
 ### 完整方法列表
@@ -108,7 +114,25 @@ var users []User
 _, err := o.Select(`SELECT * FROM users`).Structs(&users)
 ```
 
-#### 2. Kvs - 键值对查询
+#### 2. Value 和 Values - 多列值查询
+
+**Value** - 查询单行多列的值
+
+```go
+var id int64
+var email string
+_, err := o.Select(`SELECT id, email FROM users WHERE id = #{Id}`, 1).Value(&id, &email)
+```
+
+**Values** - 查询多行多列的值
+
+```go
+var ids []int64
+var emails []string
+_, err := o.Select(`SELECT id, email FROM users`).Values(&ids, &emails)
+```
+
+#### 3. Kvs - 键值对查询
 
 查询多行两列数据并存入map，第一列作为key，第二列作为value
 
@@ -117,7 +141,7 @@ var idEmailMap = map[int64]string{}
 _, err := o.Select(`SELECT id, email FROM users`).Kvs(&idEmailMap)
 ```
 
-#### 3. ColumnsAndData - 列名和数据查询
+#### 4. ColumnsAndData - 列名和数据查询
 
 查询多行数据，返回列名和数据（常用于数据交换）
 
@@ -127,7 +151,7 @@ columns, datas, err := o.Select(`SELECT id, email FROM users`).ColumnsAndData()
 // datas 为 [][]string
 ```
 
-#### 4. String 和 Strings - 字符串查询
+#### 5. String 和 Strings - 字符串查询
 
 **String** - 查询单个字符串值
 
@@ -141,7 +165,7 @@ email, err := o.Select(`SELECT email FROM users WHERE id = #{Id}`, 1).String()
 emails, err := o.Select(`SELECT email FROM users`).Strings()
 ```
 
-#### 5. Int 和 Ints - 整数查询
+#### 6. Int 和 Ints - 整数查询
 
 **Int** - 查询单个int值
 
@@ -155,7 +179,7 @@ count, err := o.Select(`SELECT COUNT(*) FROM users`).Int()
 ages, err := o.Select(`SELECT age FROM users`).Ints()
 ```
 
-#### 6. Int32 和 Int32s - 32位整数查询
+#### 7. Int32 和 Int32s - 32位整数查询
 
 **Int32** - 查询单个int32值
 
@@ -169,7 +193,7 @@ count, err := o.Select(`SELECT count FROM table WHERE id = #{Id}`, 1).Int32()
 counts, err := o.Select(`SELECT count FROM table`).Int32s()
 ```
 
-#### 7. Int64 和 Int64s - 64位整数查询
+#### 8. Int64 和 Int64s - 64位整数查询
 
 **Int64** - 查询单个int64值
 
@@ -183,7 +207,7 @@ id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example
 ids, err := o.Select(`SELECT id FROM users`).Int64s()
 ```
 
-#### 8. Uint 和 Uints - 无符号整数查询
+#### 9. Uint 和 Uints - 无符号整数查询
 
 **Uint** - 查询单个uint值
 
@@ -197,7 +221,7 @@ count, err := o.Select(`SELECT COUNT(*) FROM users`).Uint()
 counts, err := o.Select(`SELECT count FROM table`).Uints()
 ```
 
-#### 9. Uint64 和 Uint64s - 64位无符号整数查询
+#### 10. Uint64 和 Uint64s - 64位无符号整数查询
 
 **Uint64** - 查询单个uint64值
 
@@ -211,7 +235,7 @@ id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example
 ids, err := o.Select(`SELECT id FROM users`).Uint64s()
 ```
 
-#### 10. Float32 和 Float32s - 32位浮点数查询
+#### 11. Float32 和 Float32s - 32位浮点数查询
 
 **Float32** - 查询单个float32值
 
@@ -225,7 +249,7 @@ price, err := o.Select(`SELECT price FROM products WHERE id = #{Id}`, 1).Float32
 prices, err := o.Select(`SELECT price FROM products`).Float32s()
 ```
 
-#### 11. Float64 和 Float64s - 64位浮点数查询
+#### 12. Float64 和 Float64s - 64位浮点数查询
 
 **Float64** - 查询单个float64值
 
@@ -239,7 +263,7 @@ avg, err := o.Select(`SELECT AVG(score) FROM users`).Float64()
 scores, err := o.Select(`SELECT score FROM users`).Float64s()
 ```
 
-#### 12. Bool 和 Bools - 布尔值查询
+#### 13. Bool 和 Bools - 布尔值查询
 
 **Bool** - 查询单个布尔值
 
@@ -257,6 +281,7 @@ statuses, err := o.Select(`SELECT is_active FROM users`).Bools()
 
 | 数据类型 | 单值方法 | 多值方法 | 典型用途 |
 |---------|---------|---------|---------|
+| **通用多列** | `Value()` | `Values()` | 查询多列不同类型的值 |
 | 字符串 | `String()` | `Strings()` | 名称、邮箱等文本字段 |
 | 整数 | `Int()` | `Ints()` | 计数、年龄等整数 |
 | 32位整数 | `Int32()` | `Int32s()` | 小范围整数 |
@@ -272,6 +297,7 @@ statuses, err := o.Select(`SELECT is_active FROM users`).Bools()
 
 ### ⚠️ 重要说明
 
+- **多列查询**: `Value()` 和 `Values()` 方法支持查询多列不同类型的值，适用于查询不同数据类型的多个字段
 - **零值处理**: 单值方法在无结果时返回类型零值（`0`, `""`, `false`）
 - **空切片**: 多值方法在无结果时返回空切片 `[]`
 - **数据交换**: `ColumnsAndData()` 返回的数据全部为字符串类型，适合跨语言数据交换

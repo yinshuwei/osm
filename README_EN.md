@@ -39,6 +39,7 @@ Support various data receiving methods to meet different scenario requirements:
 
 | Method Type | Description | Use Case |
 |------------|-------------|----------|
+| `Value` / `Values` | Single/Multiple rows with multiple columns | Query multiple columns with different types |
 | `Struct` / `Structs` | Single/Multiple rows to struct | Object mapping |
 | `String` / `Strings` | Single/Multiple strings | Simple field queries |
 | `Int` / `Ints` | Single/Multiple integers | Statistical queries |
@@ -88,6 +89,11 @@ count, err := o.Select("SELECT COUNT(*) FROM users").Int()
 
 // Query string
 email, err := o.Select("SELECT email FROM users WHERE id = #{Id}", 1).String()
+
+// Query multiple columns with different types
+var id int64
+var username string
+_, err := o.Select("SELECT id, username FROM users WHERE id = #{Id}", 1).Value(&id, &username)
 ```
 
 ### Complete Method List
@@ -108,7 +114,25 @@ var users []User
 _, err := o.Select(`SELECT * FROM users`).Structs(&users)
 ```
 
-#### 2. Kvs - Key-Value Pair Queries
+#### 2. Value and Values - Multi-Column Value Queries
+
+**Value** - Query single row with multiple columns
+
+```go
+var id int64
+var email string
+_, err := o.Select(`SELECT id, email FROM users WHERE id = #{Id}`, 1).Value(&id, &email)
+```
+
+**Values** - Query multiple rows with multiple columns
+
+```go
+var ids []int64
+var emails []string
+_, err := o.Select(`SELECT id, email FROM users`).Values(&ids, &emails)
+```
+
+#### 3. Kvs - Key-Value Pair Queries
 
 Query multiple rows with two columns and store in map, first column as key, second as value
 
@@ -117,7 +141,7 @@ var idEmailMap = map[int64]string{}
 _, err := o.Select(`SELECT id, email FROM users`).Kvs(&idEmailMap)
 ```
 
-#### 3. ColumnsAndData - Column Names and Data Queries
+#### 4. ColumnsAndData - Column Names and Data Queries
 
 Query multiple rows and return column names and data (commonly used for data exchange)
 
@@ -127,7 +151,7 @@ columns, datas, err := o.Select(`SELECT id, email FROM users`).ColumnsAndData()
 // datas is [][]string
 ```
 
-#### 4. String and Strings - String Queries
+#### 5. String and Strings - String Queries
 
 **String** - Query single string value
 
@@ -141,7 +165,7 @@ email, err := o.Select(`SELECT email FROM users WHERE id = #{Id}`, 1).String()
 emails, err := o.Select(`SELECT email FROM users`).Strings()
 ```
 
-#### 5. Int and Ints - Integer Queries
+#### 6. Int and Ints - Integer Queries
 
 **Int** - Query single int value
 
@@ -155,7 +179,7 @@ count, err := o.Select(`SELECT COUNT(*) FROM users`).Int()
 ages, err := o.Select(`SELECT age FROM users`).Ints()
 ```
 
-#### 6. Int32 and Int32s - 32-bit Integer Queries
+#### 7. Int32 and Int32s - 32-bit Integer Queries
 
 **Int32** - Query single int32 value
 
@@ -169,7 +193,7 @@ count, err := o.Select(`SELECT count FROM table WHERE id = #{Id}`, 1).Int32()
 counts, err := o.Select(`SELECT count FROM table`).Int32s()
 ```
 
-#### 7. Int64 and Int64s - 64-bit Integer Queries
+#### 8. Int64 and Int64s - 64-bit Integer Queries
 
 **Int64** - Query single int64 value
 
@@ -183,7 +207,7 @@ id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example
 ids, err := o.Select(`SELECT id FROM users`).Int64s()
 ```
 
-#### 8. Uint and Uints - Unsigned Integer Queries
+#### 9. Uint and Uints - Unsigned Integer Queries
 
 **Uint** - Query single uint value
 
@@ -197,7 +221,7 @@ count, err := o.Select(`SELECT COUNT(*) FROM users`).Uint()
 counts, err := o.Select(`SELECT count FROM table`).Uints()
 ```
 
-#### 9. Uint64 and Uint64s - 64-bit Unsigned Integer Queries
+#### 10. Uint64 and Uint64s - 64-bit Unsigned Integer Queries
 
 **Uint64** - Query single uint64 value
 
@@ -211,7 +235,7 @@ id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example
 ids, err := o.Select(`SELECT id FROM users`).Uint64s()
 ```
 
-#### 10. Float32 and Float32s - 32-bit Float Queries
+#### 11. Float32 and Float32s - 32-bit Float Queries
 
 **Float32** - Query single float32 value
 
@@ -225,7 +249,7 @@ price, err := o.Select(`SELECT price FROM products WHERE id = #{Id}`, 1).Float32
 prices, err := o.Select(`SELECT price FROM products`).Float32s()
 ```
 
-#### 11. Float64 and Float64s - 64-bit Float Queries
+#### 12. Float64 and Float64s - 64-bit Float Queries
 
 **Float64** - Query single float64 value
 
@@ -239,7 +263,7 @@ avg, err := o.Select(`SELECT AVG(score) FROM users`).Float64()
 scores, err := o.Select(`SELECT score FROM users`).Float64s()
 ```
 
-#### 12. Bool and Bools - Boolean Queries
+#### 13. Bool and Bools - Boolean Queries
 
 **Bool** - Query single boolean value
 
@@ -257,6 +281,7 @@ statuses, err := o.Select(`SELECT is_active FROM users`).Bools()
 
 | Data Type | Single Value Method | Multiple Values Method | Typical Use |
 |-----------|-------------------|---------------------|------------|
+| **Generic Multi-Column** | `Value()` | `Values()` | Query multiple columns with different types |
 | String | `String()` | `Strings()` | Names, emails, text fields |
 | Integer | `Int()` | `Ints()` | Counts, ages, integers |
 | 32-bit Integer | `Int32()` | `Int32s()` | Small range integers |
@@ -272,6 +297,7 @@ statuses, err := o.Select(`SELECT is_active FROM users`).Bools()
 
 ### ⚠️ Important Notes
 
+- **Multi-Column Query**: `Value()` and `Values()` methods support querying multiple columns with different types, suitable for querying multiple fields with different data types
 - **Zero Value Handling**: Single value methods return type zero value (`0`, `""`, `false`) when no result
 - **Empty Slice**: Multiple value methods return empty slice `[]` when no result
 - **Data Exchange**: `ColumnsAndData()` returns all data as strings, suitable for cross-language data exchange
