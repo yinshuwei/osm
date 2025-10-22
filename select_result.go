@@ -106,14 +106,12 @@ func (sr *SelectResult) ColumnsAndData() ([]string, [][]string, error) {
 //
 //	email, err := o.Select(`SELECT email FROM users WHERE id = #{Id}`, 1).String()
 func (sr *SelectResult) String() (string, error) {
-	results, err := sr.Strings()
-	if err != nil {
-		return "", err
+	if sr.err != nil {
+		return "", sr.err
 	}
-	if len(results) == 0 {
-		return "", nil
-	}
-	return results[0], nil
+	var result string
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Strings 查询多个字符串值
@@ -136,14 +134,12 @@ func (sr *SelectResult) Strings() ([]string, error) {
 //
 //	count, err := o.Select(`SELECT COUNT(*) FROM users`).Int()
 func (sr *SelectResult) Int() (int, error) {
-	results, err := sr.Ints()
-	if err != nil {
-		return 0, err
+	if sr.err != nil {
+		return 0, sr.err
 	}
-	if len(results) == 0 {
-		return 0, nil
-	}
-	return results[0], nil
+	var result int
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Ints 查询多个int值
@@ -166,14 +162,12 @@ func (sr *SelectResult) Ints() ([]int, error) {
 //
 //	id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example.com").Int64()
 func (sr *SelectResult) Int64() (int64, error) {
-	results, err := sr.Int64s()
-	if err != nil {
-		return 0, err
+	if sr.err != nil {
+		return 0, sr.err
 	}
-	if len(results) == 0 {
-		return 0, nil
-	}
-	return results[0], nil
+	var result int64
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Int64s 查询多个int64值
@@ -196,14 +190,12 @@ func (sr *SelectResult) Int64s() ([]int64, error) {
 //
 //	avg, err := o.Select(`SELECT AVG(score) FROM users`).Float64()
 func (sr *SelectResult) Float64() (float64, error) {
-	results, err := sr.Float64s()
-	if err != nil {
-		return 0, err
+	if sr.err != nil {
+		return 0, sr.err
 	}
-	if len(results) == 0 {
-		return 0, nil
-	}
-	return results[0], nil
+	var result float64
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Float64s 查询多个float64值
@@ -226,14 +218,12 @@ func (sr *SelectResult) Float64s() ([]float64, error) {
 //
 //	count, err := o.Select(`SELECT count FROM table WHERE id = #{Id}`, 1).Int32()
 func (sr *SelectResult) Int32() (int32, error) {
-	results, err := sr.Int32s()
-	if err != nil {
-		return 0, err
+	if sr.err != nil {
+		return 0, sr.err
 	}
-	if len(results) == 0 {
-		return 0, nil
-	}
-	return results[0], nil
+	var result int32
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Int32s 查询多个int32值
@@ -256,14 +246,12 @@ func (sr *SelectResult) Int32s() ([]int32, error) {
 //
 //	price, err := o.Select(`SELECT price FROM products WHERE id = #{Id}`, 1).Float32()
 func (sr *SelectResult) Float32() (float32, error) {
-	results, err := sr.Float32s()
-	if err != nil {
-		return 0, err
+	if sr.err != nil {
+		return 0, sr.err
 	}
-	if len(results) == 0 {
-		return 0, nil
-	}
-	return results[0], nil
+	var result float32
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Float32s 查询多个float32值
@@ -286,14 +274,12 @@ func (sr *SelectResult) Float32s() ([]float32, error) {
 //
 //	count, err := o.Select(`SELECT COUNT(*) FROM users`).Uint()
 func (sr *SelectResult) Uint() (uint, error) {
-	results, err := sr.Uints()
-	if err != nil {
-		return 0, err
+	if sr.err != nil {
+		return 0, sr.err
 	}
-	if len(results) == 0 {
-		return 0, nil
-	}
-	return results[0], nil
+	var result uint
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Uints 查询多个uint值
@@ -316,14 +302,12 @@ func (sr *SelectResult) Uints() ([]uint, error) {
 //
 //	id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example.com").Uint64()
 func (sr *SelectResult) Uint64() (uint64, error) {
-	results, err := sr.Uint64s()
-	if err != nil {
-		return 0, err
+	if sr.err != nil {
+		return 0, sr.err
 	}
-	if len(results) == 0 {
-		return 0, nil
-	}
-	return results[0], nil
+	var result uint64
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Uint64s 查询多个uint64值
@@ -346,14 +330,12 @@ func (sr *SelectResult) Uint64s() ([]uint64, error) {
 //
 //	isActive, err := o.Select(`SELECT is_active FROM users WHERE id = #{Id}`, 1).Bool()
 func (sr *SelectResult) Bool() (bool, error) {
-	results, err := sr.Bools()
-	if err != nil {
-		return false, err
+	if sr.err != nil {
+		return false, sr.err
 	}
-	if len(results) == 0 {
-		return false, nil
-	}
-	return results[0], nil
+	var result bool
+	_, err := resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, []interface{}{&result})
+	return result, err
 }
 
 // Bools 查询多个布尔值
