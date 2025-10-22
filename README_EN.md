@@ -1,61 +1,61 @@
 # OSM - Object SQL Mapping
 
-[English](./README_EN.md) | 简体中文
+English | [简体中文](./README.md)
 
-osm (Object SQL Mapping) 是用 Go 编写的轻量级 SQL 工具库，已在生产环境中广泛使用。
+osm (Object SQL Mapping) is a lightweight SQL toolkit written in Go, widely used in production environments.
 
-**支持的数据库:** MySQL、PostgreSQL、SQL Server
+**Supported Databases:** MySQL, PostgreSQL, SQL Server
 
-## ✨ 核心理念
+## ✨ Core Philosophy
 
-提供极简且优雅的 SQL 操作接口，让数据库操作更加简单直观：
+Provide a minimalist and elegant SQL operation interface to make database operations simpler and more intuitive:
 
 ```go
-// 链式调用风格
+// Chain call style
 users, err := o.Select("SELECT * FROM users WHERE age > #{Age}", 18).Structs(&users)
 
-// 传统风格
+// Traditional style
 count, err := o.SelectStructs("SELECT * FROM users WHERE age > #{Age}", 18)(&users)
 ```
 
-## 🚀 核心特性
+## 🚀 Key Features
 
-### 零依赖
-- 仅依赖 Go 标准库，无第三方依赖
-- 轻量级设计，易于集成和维护
+### Zero Dependencies
+- Only depends on Go standard library, no third-party dependencies
+- Lightweight design, easy to integrate and maintain
 
-### 灵活的参数绑定
+### Flexible Parameter Binding
 
-使用 `#{ParamName}` 语法进行参数绑定，支持多种参数类型：
+Use `#{ParamName}` syntax for parameter binding, supporting multiple parameter types:
 
-- **顺序参数**: 按参数顺序自动匹配
-- **Map 参数**: 支持 `map[string]interface{}`
-- **Struct 参数**: 直接使用结构体作为参数
-- **IN 查询**: 原生支持 SQL IN 语句
+- **Sequential Parameters**: Automatically match by parameter order
+- **Map Parameters**: Support `map[string]interface{}`
+- **Struct Parameters**: Use struct directly as parameters
+- **IN Queries**: Native support for SQL IN statements
 
-### 丰富的结果处理
+### Rich Result Handling
 
-支持多种数据接收方式，满足不同场景需求：
+Support various data receiving methods to meet different scenario requirements:
 
-| 方法类型 | 说明 | 使用场景 |
-|---------|------|---------|
-| `Struct` / `Structs` | 单行/多行结构体 | 对象映射 |
-| `String` / `Strings` | 单个/多个字符串 | 简单字段查询 |
-| `Int` / `Ints` | 单个/多个整数 | 统计查询 |
-| `Float64` / `Float64s` | 单个/多个浮点数 | 数值计算 |
-| `Bool` / `Bools` | 单个/多个布尔值 | 状态标识 |
-| `Kvs` | 键值对映射 | 双列数据 → Map |
-| `ColumnsAndData` | 列名 + 数据行 | 数据交换/导出 |
+| Method Type | Description | Use Case |
+|------------|-------------|----------|
+| `Struct` / `Structs` | Single/Multiple rows to struct | Object mapping |
+| `String` / `Strings` | Single/Multiple strings | Simple field queries |
+| `Int` / `Ints` | Single/Multiple integers | Statistical queries |
+| `Float64` / `Float64s` | Single/Multiple floats | Numerical calculations |
+| `Bool` / `Bools` | Single/Multiple booleans | Status flags |
+| `Kvs` | Key-value pairs | Two-column data → Map |
+| `ColumnsAndData` | Column names + Data rows | Data exchange/export |
 
-### 智能的 Struct 映射
+### Intelligent Struct Mapping
 
-- 优先读取 `db` 标签
-- 智能的字段名转换（支持常见缩写词，如 ID、URL、HTTP 等）
-- 支持嵌套结构体
-- 支持指针类型（可表示 NULL）
-- [查看完整的字段映射规则](#field_column_mapping)
+- Prioritize reading `db` tags
+- Smart field name conversion (supports common abbreviations like ID, URL, HTTP, etc.)
+- Support nested structs
+- Support pointer types (can represent NULL)
+- [View complete field mapping rules](#field_column_mapping)
 
-## 📦 安装
+## 📦 Installation
 
 ```bash
 go get github.com/yinshuwei/osm/v2
@@ -68,218 +68,218 @@ require (
 )
 ```
 
-## 📖 API 文档
+## 📖 API Documentation
 
-完整文档请访问: https://pkg.go.dev/github.com/yinshuwei/osm/v2
+Complete documentation: https://pkg.go.dev/github.com/yinshuwei/osm/v2
 
-## 🔗 链式调用 API
+## 🔗 Chain Call API
 
-osm 支持优雅的链式调用，通过 `Select()` 方法返回 `SelectResult` 对象，可灵活选择结果处理方式。
+osm supports elegant chain calls. The `Select()` method returns a `SelectResult` object, allowing flexible result processing.
 
-### 快速开始
+### Quick Start
 
 ```go
-// 查询结构体列表
+// Query struct list
 var users []User
 _, err := o.Select("SELECT * FROM users WHERE id > #{Id}", 1).Structs(&users)
 
-// 查询单个值
+// Query single value
 count, err := o.Select("SELECT COUNT(*) FROM users").Int()
 
-// 查询字符串
+// Query string
 email, err := o.Select("SELECT email FROM users WHERE id = #{Id}", 1).String()
 ```
 
-### 完整方法列表
+### Complete Method List
 
-#### 1. Struct 和 Structs - 结构体查询
+#### 1. Struct and Structs - Struct Queries
 
-**Struct** - 查询单行数据并存入struct
+**Struct** - Query single row and store in struct
 
 ```go
 var user User
 _, err := o.Select(`SELECT * FROM users WHERE id = #{Id}`, 1).Struct(&user)
 ```
 
-**Structs** - 查询多行数据并存入struct切片
+**Structs** - Query multiple rows and store in struct slice
 
 ```go
 var users []User
 _, err := o.Select(`SELECT * FROM users`).Structs(&users)
 ```
 
-#### 2. Kvs - 键值对查询
+#### 2. Kvs - Key-Value Pair Queries
 
-查询多行两列数据并存入map，第一列作为key，第二列作为value
+Query multiple rows with two columns and store in map, first column as key, second as value
 
 ```go
 var idEmailMap = map[int64]string{}
 _, err := o.Select(`SELECT id, email FROM users`).Kvs(&idEmailMap)
 ```
 
-#### 3. ColumnsAndData - 列名和数据查询
+#### 3. ColumnsAndData - Column Names and Data Queries
 
-查询多行数据，返回列名和数据（常用于数据交换）
+Query multiple rows and return column names and data (commonly used for data exchange)
 
 ```go
 columns, datas, err := o.Select(`SELECT id, email FROM users`).ColumnsAndData()
-// columns 为 []string
-// datas 为 [][]string
+// columns is []string
+// datas is [][]string
 ```
 
-#### 4. String 和 Strings - 字符串查询
+#### 4. String and Strings - String Queries
 
-**String** - 查询单个字符串值
+**String** - Query single string value
 
 ```go
 email, err := o.Select(`SELECT email FROM users WHERE id = #{Id}`, 1).String()
 ```
 
-**Strings** - 查询多个字符串值
+**Strings** - Query multiple string values
 
 ```go
 emails, err := o.Select(`SELECT email FROM users`).Strings()
 ```
 
-#### 5. Int 和 Ints - 整数查询
+#### 5. Int and Ints - Integer Queries
 
-**Int** - 查询单个int值
+**Int** - Query single int value
 
 ```go
 count, err := o.Select(`SELECT COUNT(*) FROM users`).Int()
 ```
 
-**Ints** - 查询多个int值
+**Ints** - Query multiple int values
 
 ```go
 ages, err := o.Select(`SELECT age FROM users`).Ints()
 ```
 
-#### 6. Int32 和 Int32s - 32位整数查询
+#### 6. Int32 and Int32s - 32-bit Integer Queries
 
-**Int32** - 查询单个int32值
+**Int32** - Query single int32 value
 
 ```go
 count, err := o.Select(`SELECT count FROM table WHERE id = #{Id}`, 1).Int32()
 ```
 
-**Int32s** - 查询多个int32值
+**Int32s** - Query multiple int32 values
 
 ```go
 counts, err := o.Select(`SELECT count FROM table`).Int32s()
 ```
 
-#### 7. Int64 和 Int64s - 64位整数查询
+#### 7. Int64 and Int64s - 64-bit Integer Queries
 
-**Int64** - 查询单个int64值
+**Int64** - Query single int64 value
 
 ```go
 id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example.com").Int64()
 ```
 
-**Int64s** - 查询多个int64值
+**Int64s** - Query multiple int64 values
 
 ```go
 ids, err := o.Select(`SELECT id FROM users`).Int64s()
 ```
 
-#### 8. Uint 和 Uints - 无符号整数查询
+#### 8. Uint and Uints - Unsigned Integer Queries
 
-**Uint** - 查询单个uint值
+**Uint** - Query single uint value
 
 ```go
 count, err := o.Select(`SELECT COUNT(*) FROM users`).Uint()
 ```
 
-**Uints** - 查询多个uint值
+**Uints** - Query multiple uint values
 
 ```go
 counts, err := o.Select(`SELECT count FROM table`).Uints()
 ```
 
-#### 9. Uint64 和 Uint64s - 64位无符号整数查询
+#### 9. Uint64 and Uint64s - 64-bit Unsigned Integer Queries
 
-**Uint64** - 查询单个uint64值
+**Uint64** - Query single uint64 value
 
 ```go
 id, err := o.Select(`SELECT id FROM users WHERE email = #{Email}`, "test@example.com").Uint64()
 ```
 
-**Uint64s** - 查询多个uint64值
+**Uint64s** - Query multiple uint64 values
 
 ```go
 ids, err := o.Select(`SELECT id FROM users`).Uint64s()
 ```
 
-#### 10. Float32 和 Float32s - 32位浮点数查询
+#### 10. Float32 and Float32s - 32-bit Float Queries
 
-**Float32** - 查询单个float32值
+**Float32** - Query single float32 value
 
 ```go
 price, err := o.Select(`SELECT price FROM products WHERE id = #{Id}`, 1).Float32()
 ```
 
-**Float32s** - 查询多个float32值
+**Float32s** - Query multiple float32 values
 
 ```go
 prices, err := o.Select(`SELECT price FROM products`).Float32s()
 ```
 
-#### 11. Float64 和 Float64s - 64位浮点数查询
+#### 11. Float64 and Float64s - 64-bit Float Queries
 
-**Float64** - 查询单个float64值
+**Float64** - Query single float64 value
 
 ```go
 avg, err := o.Select(`SELECT AVG(score) FROM users`).Float64()
 ```
 
-**Float64s** - 查询多个float64值
+**Float64s** - Query multiple float64 values
 
 ```go
 scores, err := o.Select(`SELECT score FROM users`).Float64s()
 ```
 
-#### 12. Bool 和 Bools - 布尔值查询
+#### 12. Bool and Bools - Boolean Queries
 
-**Bool** - 查询单个布尔值
+**Bool** - Query single boolean value
 
 ```go
 isActive, err := o.Select(`SELECT is_active FROM users WHERE id = #{Id}`, 1).Bool()
 ```
 
-**Bools** - 查询多个布尔值
+**Bools** - Query multiple boolean values
 
 ```go
 statuses, err := o.Select(`SELECT is_active FROM users`).Bools()
 ```
 
-### 📊 方法分类总结
+### 📊 Method Classification Summary
 
-| 数据类型 | 单值方法 | 多值方法 | 典型用途 |
-|---------|---------|---------|---------|
-| 字符串 | `String()` | `Strings()` | 名称、邮箱等文本字段 |
-| 整数 | `Int()` | `Ints()` | 计数、年龄等整数 |
-| 32位整数 | `Int32()` | `Int32s()` | 小范围整数 |
-| 64位整数 | `Int64()` | `Int64s()` | ID、大整数 |
-| 无符号整数 | `Uint()` | `Uints()` | 正整数 |
-| 64位无符号 | `Uint64()` | `Uint64s()` | 大范围正整数 |
-| 32位浮点 | `Float32()` | `Float32s()` | 价格、比率等小精度 |
-| 64位浮点 | `Float64()` | `Float64s()` | 科学计算、高精度数值 |
-| 布尔值 | `Bool()` | `Bools()` | 状态标识、开关 |
-| 结构体 | `Struct()` | `Structs()` | 完整对象映射 |
-| 键值对 | - | `Kvs()` | 双列数据 → Map |
-| 通用数据 | - | `ColumnsAndData()` | 数据导出、交换 |
+| Data Type | Single Value Method | Multiple Values Method | Typical Use |
+|-----------|-------------------|---------------------|------------|
+| String | `String()` | `Strings()` | Names, emails, text fields |
+| Integer | `Int()` | `Ints()` | Counts, ages, integers |
+| 32-bit Integer | `Int32()` | `Int32s()` | Small range integers |
+| 64-bit Integer | `Int64()` | `Int64s()` | IDs, large integers |
+| Unsigned Integer | `Uint()` | `Uints()` | Positive integers |
+| 64-bit Unsigned | `Uint64()` | `Uint64s()` | Large range positive integers |
+| 32-bit Float | `Float32()` | `Float32s()` | Prices, ratios, low precision |
+| 64-bit Float | `Float64()` | `Float64s()` | Scientific calculations, high precision |
+| Boolean | `Bool()` | `Bools()` | Status flags, switches |
+| Struct | `Struct()` | `Structs()` | Complete object mapping |
+| Key-Value | - | `Kvs()` | Two-column data → Map |
+| Generic Data | - | `ColumnsAndData()` | Data export, exchange |
 
-### ⚠️ 重要说明
+### ⚠️ Important Notes
 
-- **零值处理**: 单值方法在无结果时返回类型零值（`0`, `""`, `false`）
-- **空切片**: 多值方法在无结果时返回空切片 `[]`
-- **数据交换**: `ColumnsAndData()` 返回的数据全部为字符串类型，适合跨语言数据交换
-- **键值对**: `Kvs()` 要求查询结果必须是两列（第一列为key，第二列为value）
+- **Zero Value Handling**: Single value methods return type zero value (`0`, `""`, `false`) when no result
+- **Empty Slice**: Multiple value methods return empty slice `[]` when no result
+- **Data Exchange**: `ColumnsAndData()` returns all data as strings, suitable for cross-language data exchange
+- **Key-Value**: `Kvs()` requires query result to have exactly two columns (first as key, second as value)
 
-## 💡 完整示例
+## 💡 Complete Examples
 
-### 数据库准备
+### Database Preparation
 
 ```sql
 CREATE DATABASE test;
@@ -291,12 +291,12 @@ CREATE TABLE `user` (
   `nickname` varchar(45) DEFAULT NULL,
   `create_time` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='User table';
 ```
 
-### 示例代码
+### Example Code
 
-**基础示例 (osm_demo.go)**
+**Basic Example (osm_demo.go)**
 
 ```go
 package main
@@ -311,17 +311,17 @@ import (
     "go.uber.org/zap"
 )
 
-// InfoLogger 适配zap logger
+// InfoLogger adapter for zap logger
 type InfoLogger struct {
 	zapLogger *zap.Logger
 }
 
-// WarnLoggor 适配zap logger
-type WarnLoggor struct {
+// WarnLogger adapter for zap logger
+type WarnLogger struct {
 	zapLogger *zap.Logger
 }
 
-// ErrorLogger 适配zap logger
+// ErrorLogger adapter for zap logger
 type ErrorLogger struct {
 	zapLogger *zap.Logger
 }
@@ -348,19 +348,19 @@ func (l *InfoLogger) Log(msg string, data map[string]string) {
 	l.zapLogger.Info(msg, loggerFields(data)...)
 }
 
-func (l *WarnLoggor) Log(msg string, data map[string]string) {
+func (l *WarnLogger) Log(msg string, data map[string]string) {
 	if l == nil || l.zapLogger == nil {
 		return
 	}
 	l.zapLogger.Warn(msg, loggerFields(data)...)
 }
 
-// User 用户Model
+// User model
 type User struct {
 	ID         int64
 	Nickname   string `db:"name"`
 	CreateTime time.Time
-	EmailStruct // 匿名属性
+	EmailStruct // Anonymous property
 }
 
 type EmailStruct struct {
@@ -374,7 +374,7 @@ func main() {
 		MaxOpenConns:    0,                    // int
 		ConnMaxLifetime: 0,                    // time.Duration
 		ConnMaxIdleTime: 0,                    // time.Duration
-		WarnLogger:      &WarnLoggor{logger},  // Logger
+		WarnLogger:      &WarnLogger{logger},  // Logger
 		ErrorLogger:     &ErrorLogger{logger}, // Logger
 		InfoLogger:      &InfoLogger{logger},  // Logger
 		ShowSQL:         true,                 // bool
@@ -384,7 +384,7 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-	// 插入数据
+	// Insert data
 	user := User{
 		EmailStruct: EmailStruct{
 			Email: "test@foxmail.com",
@@ -398,7 +398,7 @@ func main() {
 	}
 	logger.Info("test insert", zap.Int64("id", id), zap.Int64("count", count))
 
-	// 更新数据
+	// Update data
 	user = User{
 		EmailStruct: EmailStruct{
 			Email: "test@foxmail.com",
@@ -411,7 +411,7 @@ func main() {
 	}
 	logger.Info("test update", zap.Int64("count", count))
 
-	// 查询数据
+	// Query data
 	user = User{
 		EmailStruct: EmailStruct{
 			Email: "test@foxmail.com",
@@ -425,14 +425,14 @@ func main() {
 	resultBytes, _ := json.Marshal(results)
 	logger.Info("test select", zap.Int64("count", count), zap.ByteString("result", resultBytes))
 
-	// 删除数据
+	// Delete data
 	count, err = o.Delete("DELETE FROM user WHERE email=#{Email}", user)
 	if err != nil {
 		logger.Error("test delete", zap.Error(err))
 	}
 	logger.Info("test delete", zap.Int64("count", count))
 
-	// 关闭连接
+	// Close connection
 	err = o.Close()
 	if err != nil {
 		logger.Error("close", zap.Error(err))
@@ -440,7 +440,7 @@ func main() {
 }
 ```
 
-**运行结果:**
+**Execution Result:**
 
 ```log
 2025-01-13T16:16:41.301+0800    INFO    osmtt/main.go:47        main.go:95, readSQLParamsBySQL showSql  {"dbParams": "[\"test@foxmail.com\",\"haha\",\"2025-01-13 16:16:41\"]", "sql": "INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", "params": "{\"ID\":0,\"Nickname\":\"haha\",\"CreateTime\":\"2025-01-13T16:16:41.301032455+08:00\",\"Email\":\"test@foxmail.com\"}", "dbSql": "INSERT INTO user (email,nickname,create_time) VALUES (?,?,?);"}
@@ -453,9 +453,9 @@ func main() {
 2025-01-13T16:16:41.313+0800    INFO    osmtt/main.go:133       test delete     {"count": 1}
 ```
 
-### 指针类型示例
+### Pointer Type Example
 
-**指针类型支持 NULL (osm_demo2.go)**
+**Pointer Type Supporting NULL (osm_demo2.go)**
 
 ```go
 package main
@@ -470,17 +470,17 @@ import (
 	"go.uber.org/zap"
 )
 
-// InfoLogger 适配zap logger
+// InfoLogger adapter for zap logger
 type InfoLogger struct {
 	zapLogger *zap.Logger
 }
 
-// WarnLoggor 适配zap logger
-type WarnLoggor struct {
+// WarnLogger adapter for zap logger
+type WarnLogger struct {
 	zapLogger *zap.Logger
 }
 
-// ErrorLogger 适配zap logger
+// ErrorLogger adapter for zap logger
 type ErrorLogger struct {
 	zapLogger *zap.Logger
 }
@@ -507,14 +507,14 @@ func (l *InfoLogger) Log(msg string, data map[string]string) {
 	l.zapLogger.Info(msg, loggerFields(data)...)
 }
 
-func (l *WarnLoggor) Log(msg string, data map[string]string) {
+func (l *WarnLogger) Log(msg string, data map[string]string) {
 	if l == nil || l.zapLogger == nil {
 		return
 	}
 	l.zapLogger.Warn(msg, loggerFields(data)...)
 }
 
-// User 用户Model
+// User model
 type User struct {
 	ID         *int64
 	Email      *string
@@ -537,7 +537,7 @@ func main() {
 		MaxOpenConns:    0,                    // int
 		ConnMaxLifetime: 0,                    // time.Duration
 		ConnMaxIdleTime: 0,                    // time.Duration
-		WarnLogger:      &WarnLoggor{logger},  // Logger
+		WarnLogger:      &WarnLogger{logger},  // Logger
 		ErrorLogger:     &ErrorLogger{logger}, // Logger
 		InfoLogger:      &InfoLogger{logger},  // Logger
 		ShowSQL:         true,                 // bool
@@ -547,11 +547,11 @@ func main() {
 		fmt.Println(err.Error())
 	}
 
-	// 插入数据（Nickname 为 nil，表示 NULL）
+	// Insert data (Nickname is nil, representing NULL)
 	{
 		user := User{
 			Email:      stringPoint("test@foxmail.com"),
-			Nickname:   nil, // NULL 值
+			Nickname:   nil, // NULL value
 			CreateTime: timePoint(time.Now()),
 		}
 		id, count, err := o.Insert("INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", user)
@@ -561,7 +561,7 @@ func main() {
 		logger.Info("test insert", zap.Int64("id", id), zap.Int64("count", count))
 	}
 
-	// 查询数据
+	// Query data
 	{
 		user := User{
 			Email: stringPoint("test@foxmail.com"),
@@ -575,7 +575,7 @@ func main() {
 		logger.Info("test select", zap.Int64("count", count), zap.ByteString("result", resultBytes))
 	}
 
-	// 更新数据
+	// Update data
 	{
 		user := User{
 			Email:    stringPoint("test@foxmail.com"),
@@ -588,7 +588,7 @@ func main() {
 		logger.Info("test update", zap.Int64("count", count))
 	}
 
-	// 再次查询验证
+	// Query again to verify
 	{
 		user := User{
 			Email: stringPoint("test@foxmail.com"),
@@ -602,7 +602,7 @@ func main() {
 		logger.Info("test select", zap.Int64("count", count), zap.ByteString("result", resultBytes))
 	}
 
-	// 删除数据
+	// Delete data
 	{
 		user := User{
 			Email: stringPoint("test@foxmail.com"),
@@ -614,7 +614,7 @@ func main() {
 		logger.Info("test delete", zap.Int64("count", count))
 	}
 
-	// 关闭连接
+	// Close connection
 	{
 		err = o.Close()
 		if err != nil {
@@ -625,7 +625,7 @@ func main() {
 
 ```
 
-**运行结果:**
+**Execution Result:**
 
 ```log
 2022-02-21T11:42:44.591+0800    INFO    v2@v2.0.2/sql.go:311    readSQLParamsBySQL showSql, sql: INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});, params: {"ID":null,"Email":"test@foxmail.com","Nickname":null,"CreateTime":"2022-02-21T11:42:44.591619385+08:00"}, dbSql: INSERT INTO user (email,nickname,create_time) VALUES (?,?,?);, dbParams: ["test@foxmail.com",null,"2022-02-21T11:42:44.591619385+08:00"]
@@ -640,99 +640,100 @@ func main() {
 2022-02-21T11:42:44.603+0800    INFO    osm_demo/main.go:97     test delete     {"count": 1}
 ```
 
-## <a id="field_column_mapping"></a>🔤 Struct 字段映射规则
+## <a id="field_column_mapping"></a>🔤 Struct Field Mapping Rules
 
-### 自动转换规则
+### Automatic Conversion Rules
 
-SQL 列名会自动转换为 Go 结构体字段名，转换过程如下：
+SQL column names are automatically converted to Go struct field names through the following process:
 
-1. **分隔**: 用 `_` 分隔列名 
-   - 例: `user_email` → `user`, `email`
+1. **Split**: Split column name by `_`
+   - Example: `user_email` → `user`, `email`
 
-2. **首字母大写**: 每个部分转为首字母大写，其余小写
-   - 例: `user`, `email` → `User`, `Email`
+2. **Capitalize**: Capitalize the first letter of each part, lowercase the rest
+   - Example: `user`, `email` → `User`, `Email`
 
-3. **拼接**: 拼接所有部分
-   - 例: `User`, `Email` → `UserEmail`
+3. **Concatenate**: Concatenate all parts
+   - Example: `User`, `Email` → `UserEmail`
 
-**示例:**
+**Examples:**
 ```
 user_name     → UserName
 create_time   → CreateTime
-user_id       → UserId 或 UserID
+user_id       → UserId or UserID
 ```
 
-### 常见缩写词支持
+### Common Abbreviation Support
 
-以下缩写词支持两种形式（大小写不敏感），可在结构体中任选一种：
+The following abbreviations support both forms (case insensitive), you can choose either in your struct:
 
-**示例:** `user_id` 列可映射到 `UserId` 或 `UserID` 字段
+**Example:** The `user_id` column can map to either `UserId` or `UserID` field
 
-> ⚠️ **注意**: 同一结构体中不能同时包含两种形式（如同时有 `UserId` 和 `UserID`），否则只有一个会被赋值。
+> ⚠️ **Note**: The same struct cannot contain both forms (e.g., both `UserId` and `UserID`), otherwise only one will be assigned.
 
-**支持的缩写词列表:**
+**Supported Abbreviation List:**
 ```
-  Acl  或   ACL
-  Api  或   API
-  Ascii  或 ASCII
-  Cpu  或   CPU
-  Css  或   CSS
-  Dns  或   DNS
-  Eof  或   EOF
-  Guid  或  GUID
-  Html  或  HTML
-  Http  或  HTTP
-  Https  或 HTTPS
-  Id  或    ID
-  Ip  或    IP
-  Json  或  JSON
-  Lhs  或   LHS
-  Qps  或   QPS
-  Ram  或   RAM
-  Rhs  或   RHS
-  Rpc  或   RPC
-  Sla  或   SLA
-  Smtp  或  SMTP
-  Sql  或   SQL
-  Ssh  或   SSH
-  Tcp  或   TCP
-  Tls  或   TLS
-  Ttl  或   TTL
-  Udp  或   UDP
-  Ui  或    UI
-  Uid  或   UID
-  Uuid  或  UUID
-  Uri  或   URI
-  Url  或   URL
-  Utf8  或  UTF8
-  Vm  或    VM
-  Xml  或   XML
-  Xmpp  或  XMPP
-  Xsrf  或  XSRF
-  Xss  或   XSS
+  Acl  or   ACL
+  Api  or   API
+  Ascii  or ASCII
+  Cpu  or   CPU
+  Css  or   CSS
+  Dns  or   DNS
+  Eof  or   EOF
+  Guid  or  GUID
+  Html  or  HTML
+  Http  or  HTTP
+  Https  or HTTPS
+  Id  or    ID
+  Ip  or    IP
+  Json  or  JSON
+  Lhs  or   LHS
+  Qps  or   QPS
+  Ram  or   RAM
+  Rhs  or   RHS
+  Rpc  or   RPC
+  Sla  or   SLA
+  Smtp  or  SMTP
+  Sql  or   SQL
+  Ssh  or   SSH
+  Tcp  or   TCP
+  Tls  or   TLS
+  Ttl  or   TTL
+  Udp  or   UDP
+  Ui  or    UI
+  Uid  or   UID
+  Uuid  or  UUID
+  Uri  or   URI
+  Url  or   URL
+  Utf8  or  UTF8
+  Vm  or    VM
+  Xml  or   XML
+  Xmpp  or  XMPP
+  Xsrf  or  XSRF
+  Xss  or   XSS
 ```
 
-### 使用 db 标签
+### Using db Tags
 
-可以使用 `db` 标签显式指定字段与列的映射关系，标签优先级最高：
+You can use the `db` tag to explicitly specify field-to-column mapping, tags have the highest priority:
 
 ```go
 type User struct {
-    ID       int64  `db:"user_id"`      // 显式映射到 user_id 列
-    Name     string `db:"user_name"`    // 显式映射到 user_name 列
-    Email    string                      // 自动映射到 email 列
-    IsActive bool   `db:"is_active"`    // 显式映射到 is_active 列
+    ID       int64  `db:"user_id"`      // Explicitly map to user_id column
+    Name     string `db:"user_name"`    // Explicitly map to user_name column
+    Email    string                      // Automatically map to email column
+    IsActive bool   `db:"is_active"`    // Explicitly map to is_active column
 }
 ```
 
-## 🤝 贡献
+## 🤝 Contributing
 
-欢迎提交 Issue 和 Pull Request！
+Issues and Pull Requests are welcome!
 
-## 📄 许可证
+## 📄 License
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
 ---
 
-**如果这个项目对你有帮助，请给个 ⭐️ Star 支持一下！**
+**If this project helps you, please give it a ⭐️ Star to support us!**
+
