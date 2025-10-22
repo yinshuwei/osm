@@ -80,6 +80,34 @@ func (sr *SelectResult) Kvs(container interface{}) (int64, error) {
 	return resultKvs(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, container)
 }
 
+// Value 查询单个值
+//
+// 用法:
+//
+//	var id int64
+//	var email string
+//	_, err = o.Select(`SELECT id, email FROM users WHERE id = #{Id}`, 1).Value(&id, &email)
+func (sr *SelectResult) Value(containers ...interface{}) (int64, error) {
+	if sr.err != nil {
+		return 0, sr.err
+	}
+	return resultValue(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, containers)
+}
+
+// Values 查询多个值
+//
+// 用法:
+//
+//	var ids []int64
+//	var emails []string
+//	_, err = o.Select(`SELECT id, email FROM users`).Values(&ids, &emails)
+func (sr *SelectResult) Values(containers ...interface{}) (int64, error) {
+	if sr.err != nil {
+		return 0, sr.err
+	}
+	return resultValues(sr.logPrefix, sr.osmBase, sr.sql, sr.sql, sr.sqlParams, containers)
+}
+
 // ColumnsAndData 查询多行数据，返回列名和数据
 //
 // 用法:
