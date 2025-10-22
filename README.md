@@ -65,7 +65,7 @@ go get github.com/yinshuwei/osm/v2
 **go.mod:**
 ```go
 require (
-    github.com/yinshuwei/osm/v2 v2.0.4
+    github.com/yinshuwei/osm/v2 v2.0.8
 )
 ```
 
