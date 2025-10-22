@@ -4,7 +4,6 @@ import (
 	"path"
 	"runtime"
 	"strconv"
-	"time"
 )
 
 // SelectResult 查询结果对象，支持链式调用
@@ -32,13 +31,6 @@ func (o *osmBase) Select(sql string, params ...interface{}) *SelectResult {
 		fileName := path.Base(file)
 		logPrefix = fileName + ":" + strconv.Itoa(lineNo) + ", "
 	}
-
-	now := time.Now()
-	go func(start time.Time) {
-		if time.Since(start) > o.options.SlowLogDuration {
-			o.options.WarnLogger.Log(logPrefix+"slow sql", map[string]string{"sql": sql, "cost": time.Since(start).String()})
-		}
-	}(now)
 
 	result := &SelectResult{
 		osmBase:   o,

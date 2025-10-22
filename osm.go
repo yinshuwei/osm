@@ -3,6 +3,7 @@ package osm
 // osm (Object Sql Mapping) 极简sql工具，支持MySQL和PostgreSQL。
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"path"
@@ -35,6 +36,8 @@ type osmBase struct {
 // Osm 对象，通过Struct、Map、Array、value等对象以及Sql Map来操作数据库。可以开启事务。
 type Osm struct {
 	osmBase
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // Tx 与Osm对象一样，不过是在事务中进行操作
@@ -105,15 +108,20 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 	}
 
 	options.tidy()
+
+	ctx, cancel := context.WithCancel(context.Background())
 	osm := &Osm{
 		osmBase: osmBase{
 			options: &options,
 		},
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
 	db, err := sql.Open(driverName, dataSource)
 
 	if err != nil {
+		cancel()
 		if db != nil {
 			db.Close()
 		}
@@ -122,17 +130,25 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 
 	err = db.Ping()
 	if err != nil {
+		cancel()
 		db.Close()
 		return nil, fmt.Errorf("create osm error : %s", err.Error())
 	}
 
+	// 启动健康检查goroutine
 	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+
 		for {
-			err := db.Ping()
-			if err != nil {
-				osm.options.WarnLogger.Log(logPrefix+"osm Ping fail", map[string]string{"error": err.Error()})
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := db.Ping(); err != nil {
+					osm.options.WarnLogger.Log(logPrefix+"osm Ping fail", map[string]string{"error": err.Error()})
+				}
 			}
-			time.Sleep(time.Minute)
 		}
 	}()
 
@@ -199,11 +215,16 @@ func (o *Osm) Begin() (*Tx, error) {
 //	err := o.Close()
 func (o *Osm) Close() error {
 	if o.db == nil {
-		return fmt.Errorf("db no opened")
+		return fmt.Errorf("db not opened")
 	}
 	sqlDb, ok := o.db.(*sql.DB)
 	if !ok {
-		return fmt.Errorf("db no opened")
+		return fmt.Errorf("db not opened")
+	}
+
+	// 取消context，停止健康检查goroutine
+	if o.cancel != nil {
+		o.cancel()
 	}
 
 	o.db = nil
@@ -217,11 +238,11 @@ func (o *Osm) Close() error {
 //	err := tx.Commit()
 func (o *Tx) Commit() error {
 	if o.db == nil {
-		return fmt.Errorf("tx no runing")
+		return fmt.Errorf("tx not running")
 	}
 	sqlTx, ok := o.db.(*sql.Tx)
 	if !ok {
-		return fmt.Errorf("tx no runing")
+		return fmt.Errorf("tx not running")
 	}
 	return sqlTx.Commit()
 }
@@ -233,11 +254,11 @@ func (o *Tx) Commit() error {
 //	err := tx.Rollback()
 func (o *Tx) Rollback() error {
 	if o.db == nil {
-		return fmt.Errorf("tx no runing")
+		return fmt.Errorf("tx not running")
 	}
 	sqlTx, ok := o.db.(*sql.Tx)
 	if !ok {
-		return fmt.Errorf("tx no runing")
+		return fmt.Errorf("tx not running")
 	}
 	return sqlTx.Rollback()
 }
@@ -286,4 +307,26 @@ func sqlIsIn(lastSQLText string) bool {
 		return strings.EqualFold(lastSQLText[lenLastSQLText-3:], " IN")
 	}
 	return false
+}
+
+// getCallerInfo 获取调用者信息，用于日志记录
+func getCallerInfo(skip int) string {
+	_, file, lineNo, ok := runtime.Caller(skip)
+	if ok {
+		fileName := path.Base(file)
+		return fileName + ":" + strconv.Itoa(lineNo) + ", "
+	}
+	return ""
+}
+
+// slowLogDefer 返回一个用于慢SQL检测的defer函数
+func (o *osmBase) slowLogDefer(logPrefix, sql string, start time.Time) func() {
+	return func() {
+		if time.Since(start) > o.options.SlowLogDuration {
+			o.options.WarnLogger.Log(logPrefix+"slow sql", map[string]string{
+				"sql":  sql,
+				"cost": time.Since(start).String(),
+			})
+		}
+	}
 }
