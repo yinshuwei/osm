@@ -42,9 +42,9 @@ func resultValues(logPrefix string, o *osmBase, id, sql string, sqlParams []inte
 	var columnsCount int
 	for rows.Next() {
 		if rowsCount == 0 {
-			columns, err := rows.Columns()
-			if err != nil {
-				return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
+			columns, err1 := rows.Columns()
+			if err1 != nil {
+				return 0, fmt.Errorf("sql '%s' error : %s", id, err1.Error())
 			}
 			columnsCount = len(columns)
 			if columnsCount != lenContainers {

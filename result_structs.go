@@ -52,9 +52,9 @@ func resultStructs(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 		valueElem := reflect.New(structType).Elem()
 		// 当isPtrs没有内容时,rowsCount,columnsCount,elementTypes,isPtrs,fieldNames的结果
 		if fields == nil {
-			columns, err := rows.Columns()
-			if err != nil {
-				return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
+			columns, err1 := rows.Columns()
+			if err1 != nil {
+				return 0, fmt.Errorf("sql '%s' error : %s", id, err1.Error())
 			}
 			columnsCount = len(columns)
 			// 定义
