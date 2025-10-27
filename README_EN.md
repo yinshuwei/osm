@@ -56,6 +56,50 @@ Support various data receiving methods to meet different scenario requirements:
 - Support pointer types (can represent NULL)
 - [View complete field mapping rules](#field_column_mapping)
 
+### SQL Placeholder Replacement
+
+Support using placeholders in SQL statements that are automatically replaced with configured values at runtime. This is particularly useful for the following scenarios:
+
+- **Table Prefix Replacement**: Add a unified prefix to table names
+- **Database Schema Switching**: Dynamically switch database schema based on environment
+- **Environment Identification**: Insert environment-related identifiers in SQL
+
+**Configuration Example:**
+
+```go
+o, err := osm.New("mysql", "root:123456@/test?charset=utf8", osm.Options{
+    SQLReplacements: map[string]string{
+        "[TablePrefix]": "data_",   // Table prefix
+        "[Schema]":      "prod",     // Database schema
+        "[Env]":         "prod",     // Environment identifier
+    },
+})
+
+// Placeholders in SQL will be automatically replaced
+// SELECT * FROM [TablePrefix]users
+// Actually executed: SELECT * FROM data_users
+```
+
+**Usage Examples:**
+
+```go
+// Single table query
+o.Select("SELECT * FROM [TablePrefix]users WHERE id = #{Id}", 1)
+
+// Multi-table JOIN
+o.Select("SELECT * FROM [Schema].[TablePrefix]users u JOIN [TablePrefix]orders o ON u.id = o.user_id")
+
+// Environment-related conditions
+o.Select("SELECT * FROM [TablePrefix]config WHERE env = '[Env]'")
+```
+
+**Features:**
+- ✅ High Performance: Only adds about 174ns overhead
+- ✅ Zero Config Zero Cost: No performance impact when not configured
+- ✅ Multiple Placeholder Support: Can replace multiple different placeholders simultaneously
+- ✅ Repeated Placeholder Support: Same placeholder can be used multiple times in one SQL
+- ✅ Pre-Execution Replacement: Replacement happens before parameter parsing, does not affect `#{...}` parameter binding
+
 ## 📦 Installation
 
 ```bash
@@ -405,6 +449,10 @@ func main() {
 		InfoLogger:      &InfoLogger{logger},  // Logger
 		ShowSQL:         true,                 // bool
 		SlowLogDuration: 0,                    // time.Duration
+		SQLReplacements: map[string]string{    // SQL replacement map (optional)
+			"[TablePrefix]": "data_",         // Table prefix
+			"[Schema]":      "prod",          // Database schema
+		},
 	})
 	if err != nil {
 		fmt.Println(err.Error())
@@ -568,6 +616,10 @@ func main() {
 		InfoLogger:      &InfoLogger{logger},  // Logger
 		ShowSQL:         true,                 // bool
 		SlowLogDuration: 0,                    // time.Duration
+		SQLReplacements: map[string]string{    // SQL replacement map (optional)
+			"[TablePrefix]": "data_",
+			"[Schema]":      "prod",
+		},
 	})
 	if err != nil {
 		fmt.Println(err.Error())

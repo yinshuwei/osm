@@ -175,3 +175,106 @@ func BenchmarkReadSQLParamsBySQL(b *testing.B) {
 		})
 	}
 }
+
+// TestSQLReplacements 测试SQL占位符替换功能
+func TestSQLReplacements(t *testing.T) {
+	// 测试用例 1：配置了表前缀替换
+	o := &osmBase{
+		options: &Options{
+			SQLReplacements: map[string]string{
+				"[TablePrefix]": "data_",
+				"[Env]":         "prod",
+			},
+		},
+	}
+
+	sql1 := "SELECT * FROM [TablePrefix]user WHERE id = #{id}"
+	sql1, _, err1 := o.readSQLParamsBySQL("TestPrefix1", sql1, 1)
+	if err1 != nil {
+		t.Errorf("Expected no error, got %v", err1)
+	}
+	expectedSQL1 := "SELECT * FROM data_user WHERE id = ?"
+	if sql1 != expectedSQL1 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL1, sql1)
+	}
+
+	// 测试用例 2：多个替换同时进行
+	sql2 := "SELECT * FROM [TablePrefix]user_[Env] WHERE id = #{id}"
+	sql2, _, err2 := o.readSQLParamsBySQL("TestPrefix2", sql2, 1)
+	if err2 != nil {
+		t.Errorf("Expected no error, got %v", err2)
+	}
+	expectedSQL2 := "SELECT * FROM data_user_prod WHERE id = ?"
+	if sql2 != expectedSQL2 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL2, sql2)
+	}
+
+	// 测试用例 3：没有配置替换时，SQL保持不变
+	oEmpty := &osmBase{options: &Options{}}
+	sql3 := "SELECT * FROM [TablePrefix]user WHERE id = #{id}"
+	sql3, _, err3 := oEmpty.readSQLParamsBySQL("TestPrefix3", sql3, 1)
+	if err3 != nil {
+		t.Errorf("Expected no error, got %v", err3)
+	}
+	expectedSQL3 := "SELECT * FROM [TablePrefix]user WHERE id = ?"
+	if sql3 != expectedSQL3 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL3, sql3)
+	}
+
+	// 测试用例 4：替换多个相同的占位符
+	sql4 := "SELECT * FROM [TablePrefix]user1, [TablePrefix]user2 WHERE id = #{id}"
+	sql4, _, err4 := o.readSQLParamsBySQL("TestPrefix4", sql4, 1)
+	if err4 != nil {
+		t.Errorf("Expected no error, got %v", err4)
+	}
+	expectedSQL4 := "SELECT * FROM data_user1, data_user2 WHERE id = ?"
+	if sql4 != expectedSQL4 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL4, sql4)
+	}
+
+	// 测试用例 5：替换在参数解析之前执行
+	sql5 := "INSERT INTO [TablePrefix]user (name) VALUES (#{name})"
+	sql5, params5, err5 := o.readSQLParamsBySQL("TestPrefix5", sql5, "test")
+	if err5 != nil {
+		t.Errorf("Expected no error, got %v", err5)
+	}
+	expectedSQL5 := "INSERT INTO data_user (name) VALUES (?)"
+	if sql5 != expectedSQL5 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL5, sql5)
+	}
+	if len(params5) != 1 || params5[0] != "test" {
+		t.Errorf("Expected params ['test'], got %v", params5)
+	}
+}
+
+// BenchmarkSQLReplacements 对SQL替换功能进行性能测试
+func BenchmarkSQLReplacements(b *testing.B) {
+	o := &osmBase{
+		options: &Options{
+			SQLReplacements: map[string]string{
+				"[TablePrefix]": "data_",
+				"[Env]":         "prod",
+				"[Schema]":      "public",
+			},
+		},
+	}
+
+	sql := "SELECT * FROM [Schema].[TablePrefix]user_[Env] WHERE id = #{id}"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = o.readSQLParamsBySQL("Benchmark", sql, 1)
+	}
+}
+
+// BenchmarkSQLWithoutReplacements 测试不使用替换时的性能
+func BenchmarkSQLWithoutReplacements(b *testing.B) {
+	o := &osmBase{options: &Options{}}
+
+	sql := "SELECT * FROM user WHERE id = #{id}"
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, _ = o.readSQLParamsBySQL("Benchmark", sql, 1)
+	}
+}

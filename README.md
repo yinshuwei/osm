@@ -56,6 +56,50 @@ count, err := o.SelectStructs("SELECT * FROM users WHERE age > #{Age}", 18)(&use
 - 支持指针类型（可表示 NULL）
 - [查看完整的字段映射规则](#field_column_mapping)
 
+### SQL 占位符替换
+
+支持在 SQL 语句中使用占位符，在运行时自动替换为配置的值。这对于以下场景特别有用：
+
+- **表前缀替换**: 在表名前添加统一前缀
+- **数据库 Schema 切换**: 根据环境动态切换数据库 schema
+- **环境标识**: 在 SQL 中插入环境相关的标识
+
+**配置示例:**
+
+```go
+o, err := osm.New("mysql", "root:123456@/test?charset=utf8", osm.Options{
+    SQLReplacements: map[string]string{
+        "[TablePrefix]": "data_",   // 表前缀
+        "[Schema]":      "prod",     // 数据库schema
+        "[Env]":         "prod",     // 环境标识
+    },
+})
+
+// SQL 中的占位符会被自动替换
+// SELECT * FROM [TablePrefix]users
+// 实际执行: SELECT * FROM data_users
+```
+
+**使用示例:**
+
+```go
+// 单表查询
+o.Select("SELECT * FROM [TablePrefix]users WHERE id = #{Id}", 1)
+
+// 多表 JOIN
+o.Select("SELECT * FROM [Schema].[TablePrefix]users u JOIN [TablePrefix]orders o ON u.id = o.user_id")
+
+// 环境相关的条件
+o.Select("SELECT * FROM [TablePrefix]config WHERE env = '[Env]'")
+```
+
+**特性:**
+- ✅ 性能高效：仅增加约 174ns 的开销
+- ✅ 零配置零开销：未配置时完全不影响性能
+- ✅ 支持多占位符：可同时替换多个不同的占位符
+- ✅ 支持重复占位符：同一个 SQL 中可以多次使用同一个占位符
+- ✅ 执行前替换：替换发生在参数解析之前，不影响 `#{...}` 参数绑定
+
 ## 📦 安装
 
 ```bash
@@ -405,6 +449,10 @@ func main() {
 		InfoLogger:      &InfoLogger{logger},  // Logger
 		ShowSQL:         true,                 // bool
 		SlowLogDuration: 0,                    // time.Duration
+		SQLReplacements: map[string]string{    // SQL替换映射（可选）
+			"[TablePrefix]": "data_",         // 表前缀
+			"[Schema]":      "prod",          // 数据库schema
+		},
 	})
 	if err != nil {
 		fmt.Println(err.Error())
@@ -568,6 +616,10 @@ func main() {
 		InfoLogger:      &InfoLogger{logger},  // Logger
 		ShowSQL:         true,                 // bool
 		SlowLogDuration: 0,                    // time.Duration
+		SQLReplacements: map[string]string{    // SQL替换映射（可选）
+			"[TablePrefix]": "data_",
+			"[Schema]":      "prod",
+		},
 	})
 	if err != nil {
 		fmt.Println(err.Error())

@@ -62,6 +62,9 @@ type Options struct {
 	ShowSQL bool
 	// SlowLogDuration 慢查询时间阈值
 	SlowLogDuration time.Duration
+	// SQLReplacements SQL替换映射，用于替换SQL中的占位符，如 {"[TablePrefix]": "data_"}
+	// 在SQL执行前会替换所有匹配的占位符
+	SQLReplacements map[string]string
 }
 
 func (options *Options) tidy() {

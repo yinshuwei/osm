@@ -19,6 +19,19 @@ const (
 	resultTypeStrings = "strings" //查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
 )
 
+// replaceSQLPlaceholders 根据配置的SQLReplacements替换SQL中的占位符
+func (o *osmBase) replaceSQLPlaceholders(sql string) string {
+	if len(o.options.SQLReplacements) == 0 {
+		return sql
+	}
+
+	result := sql
+	for placeholder, replacement := range o.options.SQLReplacements {
+		result = strings.ReplaceAll(result, placeholder, replacement)
+	}
+	return result
+}
+
 // Delete 执行删除sql
 //
 // 代码
@@ -338,6 +351,9 @@ func (o *osmBase) selectBySQL(logPrefix, sql, resultType string, params []interf
 }
 
 func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...interface{}) (sql string, sqlParams []interface{}, err error) {
+	// 先替换SQL占位符
+	sqlOrg = o.replaceSQLPlaceholders(sqlOrg)
+
 	var param interface{}
 	paramsSize := len(params)
 	if paramsSize > 0 {
