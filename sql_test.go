@@ -176,6 +176,76 @@ func BenchmarkReadSQLParamsBySQL(b *testing.B) {
 	}
 }
 
+// BenchmarkReadSQLParamsVariants 针对不同参数形态/IN长度/容器类型的性能对比
+func BenchmarkReadSQLParamsVariants(b *testing.B) {
+	b.ReportAllocs()
+
+	// 公共对象
+	o := &osmBase{options: &Options{}}
+	logPrefix := "BenchVariants"
+
+	// 场景1：struct + 多字段 + IN(3)
+	b.Run("struct_IN_3", func(b *testing.B) {
+		type P struct {
+			Ids     []int  `db:"ids"`
+			Name    string `db:"name"`
+			Age     int    `db:"age"`
+			Status  string `db:"status"`
+			Address string `db:"address"`
+		}
+		sql := `SELECT id, name FROM users WHERE id IN #{ids} AND name=#{name} AND age=#{age} AND status=#{status} AND address=#{address}`
+		p := P{Ids: []int{1, 2, 3}, Name: "John", Age: 30, Status: "active", Address: "Main"}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_, _, _ = o.readSQLParamsBySQL(logPrefix, sql, p)
+		}
+	})
+
+	// 场景2：map + IN(10)
+	b.Run("map_IN_10", func(b *testing.B) {
+		sql := `SELECT * FROM t WHERE id IN #{ids} AND name=#{name}`
+		m := map[string]interface{}{
+			"ids":  []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10},
+			"name": "Alice",
+		}
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_, _, _ = o.readSQLParamsBySQL(logPrefix, sql, m)
+		}
+	})
+
+	// 场景3：slice 参数列表（非IN），多占位符
+	b.Run("args_multi_values", func(b *testing.B) {
+		sql := `SELECT * FROM t WHERE a=#{a} AND b=#{b} AND c=#{c} AND d=#{d} AND e=#{e}`
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_, _, _ = o.readSQLParamsBySQL(logPrefix, sql, "A", 2, 3.14, true, "Z")
+		}
+	})
+
+	// 场景4：IN(100) 压力
+	b.Run("IN_100_pressure", func(b *testing.B) {
+		ids := make([]int, 100)
+		for i := range ids {
+			ids[i] = i + 1
+		}
+		sql := `SELECT * FROM t WHERE id IN #{ids}`
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_, _, _ = o.readSQLParamsBySQL(logPrefix, sql, map[string]interface{}{"ids": ids})
+		}
+	})
+
+	// 场景5：并行（模拟多协程）
+	b.RunParallel(func(pb *testing.PB) {
+		sql := `SELECT * FROM t WHERE id IN #{ids} AND name=#{name}`
+		m := map[string]interface{}{"ids": []int{1, 2, 3, 4, 5}, "name": "Bob"}
+		for pb.Next() {
+			_, _, _ = o.readSQLParamsBySQL(logPrefix, sql, m)
+		}
+	})
+}
+
 // TestSQLReplacements 测试SQL占位符替换功能
 func TestSQLReplacements(t *testing.T) {
 	// 测试用例 1：配置了表前缀替换
@@ -187,6 +257,8 @@ func TestSQLReplacements(t *testing.T) {
 			},
 		},
 	}
+
+	o.options.tidy()
 
 	sql1 := "SELECT * FROM [TablePrefix]user WHERE id = #{id}"
 	sql1, _, err1 := o.readSQLParamsBySQL("TestPrefix1", sql1, 1)
