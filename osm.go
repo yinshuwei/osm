@@ -65,6 +65,9 @@ type Options struct {
 	// SQLReplacements SQL替换映射，用于替换SQL中的占位符，如 {"[TablePrefix]": "data_"}
 	// 在SQL执行前会替换所有匹配的占位符
 	SQLReplacements map[string]string
+
+	// replacer 预编译的字符串替换器，用于提高SQL替换性能
+	replacer *strings.Replacer
 }
 
 func (options *Options) tidy() {
@@ -81,6 +84,26 @@ func (options *Options) tidy() {
 	if options.SlowLogDuration == 0 {
 		options.SlowLogDuration = 500 * time.Millisecond
 	}
+
+	// 初始化replacer
+	options.initReplacer()
+}
+
+// InitReplacer 初始化字符串替换器
+func (options *Options) initReplacer() {
+	if len(options.SQLReplacements) == 0 {
+		options.replacer = nil
+		return
+	}
+
+	// 创建替换字符串切片
+	replacements := make([]string, 0, len(options.SQLReplacements)*2)
+	for placeholder, replacement := range options.SQLReplacements {
+		replacements = append(replacements, placeholder, replacement)
+	}
+
+	// 创建并存储replacer
+	options.replacer = strings.NewReplacer(replacements...)
 }
 
 // New 创建一个新的Osm，这个过程会打开数据库连接。

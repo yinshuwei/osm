@@ -21,15 +21,12 @@ const (
 
 // replaceSQLPlaceholders 根据配置的SQLReplacements替换SQL中的占位符
 func (o *osmBase) replaceSQLPlaceholders(sql string) string {
-	if len(o.options.SQLReplacements) == 0 {
+	// 使用预编译的replacer进行替换
+	if o.options.replacer == nil {
 		return sql
 	}
 
-	result := sql
-	for placeholder, replacement := range o.options.SQLReplacements {
-		result = strings.ReplaceAll(result, placeholder, replacement)
-	}
-	return result
+	return o.options.replacer.Replace(sql)
 }
 
 // Delete 执行删除sql
