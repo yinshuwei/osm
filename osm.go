@@ -234,6 +234,55 @@ func (o *Osm) Begin() (*Tx, error) {
 	return tx, nil
 }
 
+// Transaction 执行事务闭包，自动处理 commit 和 rollback
+//
+// 闭包函数中直接使用 tx 进行数据库操作，无需手动调用 commit 和 rollback
+// 如果闭包函数返回 error，则自动 rollback；否则自动 commit
+//
+// 如：
+//
+//	err := o.Transaction(func(tx *Tx) error {
+//		// 在事务中执行操作
+//		_, _, err := tx.Insert("INSERT INTO user (email, name) VALUES (#{Email}, #{Name})", user)
+//		if err != nil {
+//			return err  // 返回错误会自动 rollback
+//		}
+//		_, err = tx.Update("UPDATE user SET name = #{Name} WHERE id = #{ID}", "Updated", userID)
+//		if err != nil {
+//			return err  // 返回错误会自动 rollback
+//		}
+//		return nil  // 返回 nil 会自动 commit
+//	})
+func (o *Osm) Transaction(fn func(tx *Tx) error) (err error) {
+	tx, err := o.Begin()
+	if err != nil {
+		return err
+	}
+
+	// 使用 defer 确保在 panic 时也能 rollback
+	defer func() {
+		if p := recover(); p != nil {
+			// 发生 panic，先 rollback
+			_ = tx.Rollback()
+			// 重新抛出 panic
+			panic(p)
+		}
+	}()
+
+	// 执行闭包函数
+	err = fn(tx)
+	if err != nil {
+		// 闭包返回错误，执行 rollback
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			o.options.ErrorLogger.Log("Transaction rollback error", map[string]string{"error": rollbackErr.Error()})
+		}
+		return err
+	}
+
+	// 闭包执行成功，执行 commit
+	return tx.Commit()
+}
+
 // Close 与数据库断开连接，释放连接资源
 //
 // 如：

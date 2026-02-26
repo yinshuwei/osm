@@ -347,6 +347,100 @@ statuses, err := o.Select(`SELECT is_active FROM users`).Bools()
 - **Data Exchange**: `ColumnsAndData()` returns all data as strings, suitable for cross-language data exchange
 - **Key-Value**: `Kvs()` requires query result to have exactly two columns (first as key, second as value)
 
+## 🔄 Transaction Support
+
+osm provides complete transaction support, including two usage modes: traditional mode and closure mode.
+
+### Traditional Mode
+
+Traditional mode requires manually beginning, committing, or rolling back the transaction:
+
+```go
+// Begin transaction
+tx, err := o.Begin()
+if err != nil {
+    return err
+}
+
+// Execute insert operation
+user := User{
+    EmailStruct: EmailStruct{Email: "test@foxmail.com"},
+    Nickname:   "haha",
+    CreateTime: time.Now(),
+}
+insertID, count, err := tx.Insert("INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", user)
+if err != nil {
+    tx.Rollback()  // Rollback on error
+    return err
+}
+
+// Execute update operation
+count, err = tx.Update("UPDATE user SET nickname=#{Nickname} WHERE id=#{ID}", "hello", insertID)
+if err != nil {
+    tx.Rollback()  // Rollback on error
+    return err
+}
+
+// Commit transaction
+err = tx.Commit()
+if err != nil {
+    return err
+}
+```
+
+### Closure Mode (Recommended)
+
+Closure mode is more concise, automatically handling commit and rollback:
+
+```go
+err := o.Transaction(func(tx *Tx) error {
+    // Execute insert operation
+    user := User{
+        EmailStruct: EmailStruct{Email: "test@foxmail.com"},
+        Nickname:   "haha",
+        CreateTime: time.Now(),
+    }
+    insertID, _, err := tx.Insert("INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", user)
+    if err != nil {
+        return err  // Returning error will automatically rollback
+    }
+
+    // Execute update operation
+    _, err = tx.Update("UPDATE user SET nickname=#{Nickname} WHERE id=#{ID}", "hello", insertID)
+    if err != nil {
+        return err  // Returning error will automatically rollback
+    }
+
+    // Query operation
+    var result User
+    _, err = tx.Select("SELECT * FROM user WHERE id = #{ID}", insertID).Struct(&result)
+    if err != nil {
+        return err  // Returning error will automatically rollback
+    }
+
+    return nil  // Returning nil will automatically commit
+})
+if err != nil {
+    logger.Error("transaction error", zap.Error(err))
+}
+```
+
+**Advantages of Closure Mode:**
+
+- ✅ **Auto-commit**: Automatically executes `Commit()` when the closure returns `nil`
+- ✅ **Auto-rollback**: Automatically executes `Rollback()` when the closure returns an `error`
+- ✅ **Exception-safe**: Even if a `panic` occurs in the closure, it will execute `Rollback()` first before re-throwing the panic
+- ✅ **Simpler code**: No need to check errors and manually rollback after each operation
+- ✅ **Consistency**: Uses `*Tx` object directly in the closure, API is fully consistent with traditional mode
+
+**Operations Supported in Transactions:**
+
+In transactions (both traditional and closure modes), all database operation methods are available:
+
+- **Query operations**: `Select()`, `SelectStruct()`, `SelectStructs()`, `SelectValue()`, `SelectValues()`, `SelectKVS()`, `SelectStrings()`, etc.
+- **Write operations**: `Insert()`, `Update()`, `UpdateMulti()`, `Delete()`
+- **Chained calls**: All `SelectResult` methods returned by `Select()` (`.Struct()`, `.Int()`, `.String()`, etc.)
+
 ## 💡 Complete Examples
 
 ### Database Preparation

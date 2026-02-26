@@ -347,6 +347,100 @@ statuses, err := o.Select(`SELECT is_active FROM users`).Bools()
 - **数据交换**: `ColumnsAndData()` 返回的数据全部为字符串类型，适合跨语言数据交换
 - **键值对**: `Kvs()` 要求查询结果必须是两列（第一列为key，第二列为value）
 
+## 🔄 事务支持
+
+osm 提供了完整的事务支持，包括传统方式和闭包方式两种使用模式。
+
+### 传统方式
+
+传统方式需要手动开启事务、提交或回滚：
+
+```go
+// 开启事务
+tx, err := o.Begin()
+if err != nil {
+    return err
+}
+
+// 执行插入操作
+user := User{
+    EmailStruct: EmailStruct{Email: "test@foxmail.com"},
+    Nickname:   "haha",
+    CreateTime: time.Now(),
+}
+insertID, count, err := tx.Insert("INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", user)
+if err != nil {
+    tx.Rollback()  // 发生错误时回滚
+    return err
+}
+
+// 执行更新操作
+count, err = tx.Update("UPDATE user SET nickname=#{Nickname} WHERE id=#{ID}", "hello", insertID)
+if err != nil {
+    tx.Rollback()  // 发生错误时回滚
+    return err
+}
+
+// 提交事务
+err = tx.Commit()
+if err != nil {
+    return err
+}
+```
+
+### 闭包方式（推荐）
+
+闭包方式更加简洁，自动处理 commit 和 rollback：
+
+```go
+err := o.Transaction(func(tx *Tx) error {
+    // 执行插入操作
+    user := User{
+        EmailStruct: EmailStruct{Email: "test@foxmail.com"},
+        Nickname:   "haha",
+        CreateTime: time.Now(),
+    }
+    insertID, _, err := tx.Insert("INSERT INTO user (email,nickname,create_time) VALUES (#{Email},#{Nickname},#{CreateTime});", user)
+    if err != nil {
+        return err  // 返回错误会自动 rollback
+    }
+
+    // 执行更新操作
+    _, err = tx.Update("UPDATE user SET nickname=#{Nickname} WHERE id=#{ID}", "hello", insertID)
+    if err != nil {
+        return err  // 返回错误会自动 rollback
+    }
+
+    // 查询操作
+    var result User
+    _, err = tx.Select("SELECT * FROM user WHERE id = #{ID}", insertID).Struct(&result)
+    if err != nil {
+        return err  // 返回错误会自动 rollback
+    }
+
+    return nil  // 返回 nil 会自动 commit
+})
+if err != nil {
+    logger.Error("transaction error", zap.Error(err))
+}
+```
+
+**闭包方式的优势：**
+
+- ✅ **自动提交**: 闭包函数返回 `nil` 时自动执行 `Commit()`
+- ✅ **自动回滚**: 闭包函数返回 `error` 时自动执行 `Rollback()`
+- ✅ **异常安全**: 即使闭包中发生 `panic`，也会先执行 `Rollback()` 再抛出 panic
+- ✅ **简化代码**: 无需在每次操作后检查错误并手动回滚
+- ✅ **保持一致性**: 闭包中直接使用 `*Tx` 对象，API 与传统方式完全一致
+
+**事务中支持的操作：**
+
+在事务中（无论是传统方式还是闭包方式），都可以使用所有数据库操作方法：
+
+- **查询操作**: `Select()`, `SelectStruct()`, `SelectStructs()`, `SelectValue()`, `SelectValues()`, `SelectKVS()`, `SelectStrings()` 等
+- **写操作**: `Insert()`, `Update()`, `UpdateMulti()`, `Delete()`
+- **链式调用**: 所有 `Select()` 返回的 `SelectResult` 方法（`.Struct()`, `.Int()`, `.String()` 等）
+
 ## 💡 完整示例
 
 ### 数据库准备
