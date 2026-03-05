@@ -350,3 +350,175 @@ func BenchmarkSQLWithoutReplacements(b *testing.B) {
 		_, _, _ = o.readSQLParamsBySQL("Benchmark", sql, 1)
 	}
 }
+
+// TestNativeSQLPlaceholders 测试原生SQL占位符支持
+func TestNativeSQLPlaceholders(t *testing.T) {
+	// 初始化 osmBase 实例
+	o := &osmBase{options: &Options{}}
+
+	// 测试用例 1：MySQL 风格的 ? 占位符
+	sql1, params1, err1 := o.readSQLParamsBySQL("TestNative1", "SELECT * FROM table WHERE id = ? AND name = ?", 1, "John")
+	if err1 != nil {
+		t.Errorf("Expected no error, got %v", err1)
+	}
+	expectedSQL1 := "SELECT * FROM table WHERE id = ? AND name = ?"
+	if sql1 != expectedSQL1 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL1, sql1)
+	}
+	if len(params1) != 2 || params1[0] != 1 || params1[1] != "John" {
+		t.Errorf("Expected params [1, 'John'], got %v", params1)
+	}
+
+	// 测试用例 2：PostgreSQL 风格的 $1, $2 占位符
+	sql2, params2, err2 := o.readSQLParamsBySQL("TestNative2", "SELECT * FROM table WHERE id = $1 AND name = $2", 1, "John")
+	if err2 != nil {
+		t.Errorf("Expected no error, got %v", err2)
+	}
+	expectedSQL2 := "SELECT * FROM table WHERE id = $1 AND name = $2"
+	if sql2 != expectedSQL2 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL2, sql2)
+	}
+	if len(params2) != 2 || params2[0] != 1 || params2[1] != "John" {
+		t.Errorf("Expected params [1, 'John'], got %v", params2)
+	}
+
+	// 测试用例 3：混合使用 ? 和 $ 占位符
+	sql3, params3, err3 := o.readSQLParamsBySQL("TestNative3", "SELECT * FROM table WHERE id = $1 AND age > ?", 1, 25)
+	if err3 != nil {
+		t.Errorf("Expected no error, got %v", err3)
+	}
+	expectedSQL3 := "SELECT * FROM table WHERE id = $1 AND age > ?"
+	if sql3 != expectedSQL3 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL3, sql3)
+	}
+	if len(params3) != 2 || params3[0] != 1 || params3[1] != 25 {
+		t.Errorf("Expected params [1, 25], got %v", params3)
+	}
+
+	// 测试用例 4：原生占位符，单个参数
+	sql4, params4, err4 := o.readSQLParamsBySQL("TestNative4", "SELECT * FROM table WHERE id = ?", 1)
+	if err4 != nil {
+		t.Errorf("Expected no error, got %v", err4)
+	}
+	expectedSQL4 := "SELECT * FROM table WHERE id = ?"
+	if sql4 != expectedSQL4 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL4, sql4)
+	}
+	if len(params4) != 1 || params4[0] != 1 {
+		t.Errorf("Expected params [1], got %v", params4)
+	}
+
+	// 测试用例 5：原生占位符，多个参数
+	sql5, params5, err5 := o.readSQLParamsBySQL("TestNative5", "SELECT * FROM table WHERE id = ? AND name = ? AND age = ?", 1, "John", 25)
+	if err5 != nil {
+		t.Errorf("Expected no error, got %v", err5)
+	}
+	expectedSQL5 := "SELECT * FROM table WHERE id = ? AND name = ? AND age = ?"
+	if sql5 != expectedSQL5 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL5, sql5)
+	}
+	if len(params5) != 3 || params5[0] != 1 || params5[1] != "John" || params5[2] != 25 {
+		t.Errorf("Expected params [1, 'John', 25], got %v", params5)
+	}
+
+	// 测试用例 6：原生占位符，IN 查询
+	sql6, params6, err6 := o.readSQLParamsBySQL("TestNative6", "SELECT * FROM table WHERE id IN (?,?,?)", 1, 2, 3)
+	if err6 != nil {
+		t.Errorf("Expected no error, got %v", err6)
+	}
+	expectedSQL6 := "SELECT * FROM table WHERE id IN (?,?,?)"
+	if sql6 != expectedSQL6 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL6, sql6)
+	}
+	if len(params6) != 3 || params6[0] != 1 || params6[1] != 2 || params6[2] != 3 {
+		t.Errorf("Expected params [1, 2, 3], got %v", params6)
+	}
+
+	// 测试用例 7：原生占位符与SQLReplacements同时使用
+	oWithReplacer := &osmBase{
+		options: &Options{
+			SQLReplacements: map[string]string{
+				"[TablePrefix]": "data_",
+			},
+		},
+	}
+	oWithReplacer.options.tidy()
+
+	sql7, params7, err7 := oWithReplacer.readSQLParamsBySQL("TestNative7", "SELECT * FROM [TablePrefix]user WHERE id = ?", 1)
+	if err7 != nil {
+		t.Errorf("Expected no error, got %v", err7)
+	}
+	expectedSQL7 := "SELECT * FROM data_user WHERE id = ?"
+	if sql7 != expectedSQL7 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL7, sql7)
+	}
+	if len(params7) != 1 || params7[0] != 1 {
+		t.Errorf("Expected params [1], got %v", params7)
+	}
+
+	// 测试用例 8：Named 参数仍然正常工作（不受原生占位符检测影响）
+	sql8, params8, err8 := o.readSQLParamsBySQL("TestNative8", "SELECT * FROM table WHERE id = #{id}", 1)
+	if err8 != nil {
+		t.Errorf("Expected no error, got %v", err8)
+	}
+	expectedSQL8 := "SELECT * FROM table WHERE id = ?"
+	if sql8 != expectedSQL8 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL8, sql8)
+	}
+	if len(params8) != 1 || params8[0] != 1 {
+		t.Errorf("Expected params [1], got %v", params8)
+	}
+
+	// 测试用例 9：原生占位符，无参数
+	sql9, params9, err9 := o.readSQLParamsBySQL("TestNative9", "SELECT * FROM table")
+	if err9 != nil {
+		t.Errorf("Expected no error, got %v", err9)
+	}
+	expectedSQL9 := "SELECT * FROM table"
+	if sql9 != expectedSQL9 {
+		t.Errorf("Expected SQL '%s', got '%s'", expectedSQL9, sql9)
+	}
+	if len(params9) != 0 {
+		t.Errorf("Expected no params, got %v", params9)
+	}
+}
+
+// BenchmarkNativeSQLPlaceholders 测试原生SQL占位符的性能
+func BenchmarkNativeSQLPlaceholders(b *testing.B) {
+	o := &osmBase{options: &Options{}}
+
+	// MySQL 风格
+	b.Run("MySQL_style", func(b *testing.B) {
+		sql := "SELECT * FROM table WHERE id = ? AND name = ? AND age = ?"
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_, _, _ = o.readSQLParamsBySQL("Benchmark", sql, 1, "John", 25)
+		}
+	})
+
+	// PostgreSQL 风格
+	b.Run("PostgreSQL_style", func(b *testing.B) {
+		sql := "SELECT * FROM table WHERE id = $1 AND name = $2 AND age = $3"
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_, _, _ = o.readSQLParamsBySQL("Benchmark", sql, 1, "John", 25)
+		}
+	})
+
+	// 原生占位符 vs Named 占位符性能对比
+	b.Run("Comparison_Native_vs_Named", func(b *testing.B) {
+		sqlNative := "SELECT * FROM table WHERE id = ? AND name = ? AND age = ?"
+		sqlNamed := "SELECT * FROM table WHERE id = #{id} AND name = #{name} AND age = #{age}"
+		params := map[string]interface{}{"id": 1, "name": "John", "age": 25}
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			// 原生占位符
+			_, _, _ = o.readSQLParamsBySQL("Benchmark", sqlNative, 1, "John", 25)
+			// Named 占位符
+			_, _, _ = o.readSQLParamsBySQL("Benchmark", sqlNamed, params)
+		}
+	})
+}
+
+

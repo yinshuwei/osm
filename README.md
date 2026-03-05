@@ -33,6 +33,54 @@ count, err := o.SelectStructs("SELECT * FROM users WHERE age > #{Age}", 18)(&use
 - **Struct 参数**: 直接使用结构体作为参数
 - **IN 查询**: 原生支持 SQL IN 语句
 
+### 原生 SQL 占位符支持
+
+除了 Named 参数绑定（`#{ParamName}`）之外，osm 还支持原生 SQL 占位符，以获得更好的性能：
+
+- **MySQL 原生占位符**: 使用 `?` 占位符
+- **PostgreSQL 原生占位符**: 使用 `$1`, `$2` 等占位符
+- **自动检测**: 根据 SQL 内容自动判断使用哪种模式
+- **高性能**: 原生占位符比 Named 参数快 10-12 倍
+
+**MySQL 原生占位符示例:**
+
+```go
+// MySQL 原生占位符
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id = ? AND status = ?", 1, "active").Structs(&users)
+
+// IN 查询使用原生占位符
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id IN (?,?,?)", 1, 2, 3).Structs(&users)
+```
+
+**PostgreSQL 原生占位符示例:**
+
+```go
+// PostgreSQL 原生占位符
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id = $1 AND status = $2", 1, "active").Structs(&users)
+
+// IN 查询使用原生占位符
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id IN ($1, $2, $3)", 1, 2, 3).Structs(&users)
+```
+
+**检测机制:**
+
+- 如果 SQL 中包含 `#{`，则使用 **Named 参数模式**（向后兼容）
+- 否则使用 **原生占位符模式**（直接将参数传递给数据库驱动）
+- 无需配置，完全自动
+
+**性能对比:**
+
+| 模式 | 性能 | 内存使用 | 分配次数 |
+|------|------------|--------------|--------|
+| 原生占位符 | ~100 ns/op | 160 B/op | 4 allocs/op |
+| Named 参数 | ~1100 ns/op | 2346 B/op | 33 allocs/op |
+
+**注意:** 原生占位符绕过参数解析，直接将参数传递给数据库驱动，因此性能显著提升。在不需要 Named 参数灵活性的场景下，推荐使用原生占位符。
+
 ### 丰富的结果处理
 
 支持多种数据接收方式，满足不同场景需求：

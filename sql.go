@@ -351,6 +351,31 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 	// 先替换SQL占位符
 	sqlOrg = o.replaceSQLPlaceholders(sqlOrg)
 
+	// 检测是否使用原生SQL占位符（MySQL的?或PostgreSQL的$1,$2等）
+	// 只要不包含 Named 参数标记 #{，就认为是原生 SQL
+	// 原生占位符模式，直接使用传入的参数，不进行Named参数解析
+	if !strings.Contains(sqlOrg, "#{") {
+		sql = sqlOrg
+		// 过滤掉 nil 参数
+		for _, p := range params {
+			if p != nil {
+				sqlParams = append(sqlParams, p)
+			}
+		}
+		if o.options.ShowSQL {
+			var param interface{}
+			if len(sqlParams) == 1 {
+				param = sqlParams[0]
+			} else if len(sqlParams) > 1 {
+				param = sqlParams
+			}
+			paramsJson, _ := json.Marshal(param)
+			sqlParamsJson, _ := json.Marshal(sqlParams)
+			o.options.InfoLogger.Log(logPrefix+"readSQLParamsBySQL showSql (native)", map[string]string{"sql": sqlOrg, "params": string(paramsJson), "dbSql": sql, "dbParams": string(sqlParamsJson)})
+		}
+		return
+	}
+
 	var param interface{}
 	paramsSize := len(params)
 	if paramsSize > 0 {

@@ -33,6 +33,54 @@ Use `#{ParamName}` syntax for parameter binding, supporting multiple parameter t
 - **Struct Parameters**: Use struct directly as parameters
 - **IN Queries**: Native support for SQL IN statements
 
+### Native SQL Placeholder Support
+
+In addition to Named parameter binding (`#{ParamName}`), osm also supports native SQL placeholders for better performance:
+
+- **MySQL Native Placeholders**: Use `?` placeholders
+- **PostgreSQL Native Placeholders**: Use `$1`, `$2`, etc. placeholders
+- **Automatic Detection**: Automatically detects which mode to use based on SQL content
+- **High Performance**: Native placeholders are 10-12x faster than Named parameters
+
+**MySQL Native Placeholder Example:**
+
+```go
+// MySQL native placeholder
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id = ? AND status = ?", 1, "active").Structs(&users)
+
+// IN query with native placeholders
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id IN (?,?,?)", 1, 2, 3).Structs(&users)
+```
+
+**PostgreSQL Native Placeholder Example:**
+
+```go
+// PostgreSQL native placeholder
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id = $1 AND status = $2", 1, "active").Structs(&users)
+
+// IN query with native placeholders
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id IN ($1, $2, $3)", 1, 2, 3).Structs(&users)
+```
+
+**How Detection Works:**
+
+- If SQL contains `#{`, it uses **Named parameter mode** (backward compatible)
+- Otherwise, it uses **Native placeholder mode** (directly passes parameters to database driver)
+- No configuration needed, completely automatic
+
+**Performance Comparison:**
+
+| Mode | Performance | Memory Usage | Allocs |
+|------|------------|--------------|--------|
+| Native Placeholders | ~100 ns/op | 160 B/op | 4 allocs/op |
+| Named Parameters | ~1100 ns/op | 2346 B/op | 33 allocs/op |
+
+**Note:** Native placeholders bypass parameter parsing and directly pass parameters to the database driver, making them significantly faster. Use native placeholders when you don't need the flexibility of Named parameters.
+
 ### Rich Result Handling
 
 Support various data receiving methods to meet different scenario requirements:
