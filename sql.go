@@ -512,22 +512,34 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 						if index > 0 {
 							sqlTexts = append(sqlTexts, ",")
 						}
-						if o.dbType == dbTypeMysql {
-							sqlTexts = append(sqlTexts, "?")
-						} else {
-							sqlTexts = append(sqlTexts, "$"+strconv.Itoa(signIndex))
+						var placeholder string
+						switch o.dbType {
+						case dbTypeMysql, dbTypeSqlite, dbTypeTiDB:
+							placeholder = "?"
+						case dbTypeOracle:
+							placeholder = ":" + strconv.Itoa(signIndex)
+							signIndex++
+						default: // PostgreSQL, MSSQL, CockroachDB, ClickHouse
+							placeholder = "$" + strconv.Itoa(signIndex)
 							signIndex++
 						}
+						sqlTexts = append(sqlTexts, placeholder)
 						sqlParams = append(sqlParams, pv)
 					}
 					sqlTexts = append(sqlTexts, ")")
 				} else {
-					if o.dbType == dbTypeMysql {
-						sqlTexts = append(sqlTexts, "?")
-					} else {
-						sqlTexts = append(sqlTexts, "$"+strconv.Itoa(signIndex))
+					var placeholder string
+					switch o.dbType {
+					case dbTypeMysql, dbTypeSqlite, dbTypeTiDB:
+						placeholder = "?"
+					case dbTypeOracle:
+						placeholder = ":" + strconv.Itoa(signIndex)
+						signIndex++
+					default: // PostgreSQL, MSSQL, CockroachDB, ClickHouse
+						placeholder = "$" + strconv.Itoa(signIndex)
 						signIndex++
 					}
+					sqlTexts = append(sqlTexts, placeholder)
 					sqlParams = append(sqlParams, sql.paramValue)
 				}
 			} else {

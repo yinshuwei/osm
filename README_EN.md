@@ -4,7 +4,7 @@ English | [简体中文](./README.md)
 
 osm (Object SQL Mapping) is a lightweight SQL toolkit written in Go, widely used in production environments.
 
-**Supported Databases:** MySQL, PostgreSQL, SQL Server
+**Supported Databases:** MySQL, PostgreSQL, SQL Server, SQLite, Oracle, TiDB, CockroachDB, ClickHouse
 
 ## ✨ Core Philosophy
 
@@ -80,6 +80,36 @@ _, err := o.Select("SELECT * FROM users WHERE id IN ($1, $2, $3)", 1, 2, 3).Stru
 | Named Parameters | ~1100 ns/op | 2346 B/op | 33 allocs/op |
 
 **Note:** Native placeholders bypass parameter parsing and directly pass parameters to the database driver, making them significantly faster. Use native placeholders when you don't need the flexibility of Named parameters.
+
+### Database Placeholder Formats
+
+Different databases use different native placeholder formats. osm automatically generates the correct placeholder format based on the database type:
+
+| Database | Placeholder Format | Example | Driver Name |
+|----------|-------------------|---------|-------------|
+| MySQL | `?` | `SELECT * FROM users WHERE id = ?` | `mysql` |
+| SQLite | `?` | `SELECT * FROM users WHERE id = ?` | `sqlite3` |
+| PostgreSQL | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `postgres` |
+| SQL Server | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `mssql` |
+| Oracle | `:1`, `:2` | `SELECT * FROM users WHERE id = :1` | `oracle`, `godror` |
+| TiDB | `?` | `SELECT * FROM users WHERE id = ?` | `mysql` (compatible) |
+| CockroachDB | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `postgres` (compatible) |
+| ClickHouse | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `clickhouse` |
+
+**No need to worry about placeholder format when using Named parameters:**
+
+When using `#{ParamName}` syntax, osm automatically converts to the correct placeholder format based on the database type. You don't need to worry about underlying database differences.
+
+```go
+// This code works on all databases
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id = #{Id}", 1).Structs(&users)
+
+// osm automatically converts to each database's placeholder format:
+// MySQL/SQLite/TiDB:   SELECT * FROM users WHERE id = ?
+// PostgreSQL/CockroachDB/ClickHouse/MSSQL: SELECT * FROM users WHERE id = $1
+// Oracle:              SELECT * FROM users WHERE id = :1
+```
 
 ### Rich Result Handling
 

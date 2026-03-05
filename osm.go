@@ -15,9 +15,14 @@ import (
 )
 
 const (
-	dbTypeMysql    = 0
-	dbTypePostgres = 1
-	dbTypeMssql    = 2
+	dbTypeMysql      = 0
+	dbTypePostgres   = 1
+	dbTypeMssql      = 2
+	dbTypeSqlite     = 3
+	dbTypeOracle     = 4
+	dbTypeTiDB       = 5
+	dbTypeCockroach  = 6
+	dbTypeClickHouse = 7
 )
 
 type dbRunner interface {
@@ -179,10 +184,22 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 	}()
 
 	switch driverName {
+	case "mysql":
+		osm.dbType = dbTypeMysql
 	case "postgres":
 		osm.dbType = dbTypePostgres
 	case "mssql":
 		osm.dbType = dbTypeMssql
+	case "sqlite", "sqlite3":
+		osm.dbType = dbTypeSqlite
+	case "oracle", "godror":
+		osm.dbType = dbTypeOracle
+	case "tidb":
+		osm.dbType = dbTypeTiDB
+	case "cockroach", "cockroachdb":
+		osm.dbType = dbTypeCockroach
+	case "clickhouse":
+		osm.dbType = dbTypeClickHouse
 	default:
 		osm.dbType = dbTypeMysql
 	}

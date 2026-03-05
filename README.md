@@ -4,7 +4,7 @@
 
 osm (Object SQL Mapping) 是用 Go 编写的轻量级 SQL 工具库，已在生产环境中广泛使用。
 
-**支持的数据库:** MySQL、PostgreSQL、SQL Server
+**支持的数据库:** MySQL、PostgreSQL、SQL Server、SQLite、Oracle、TiDB、CockroachDB、ClickHouse
 
 ## ✨ 核心理念
 
@@ -80,6 +80,36 @@ _, err := o.Select("SELECT * FROM users WHERE id IN ($1, $2, $3)", 1, 2, 3).Stru
 | Named 参数 | ~1100 ns/op | 2346 B/op | 33 allocs/op |
 
 **注意:** 原生占位符绕过参数解析，直接将参数传递给数据库驱动，因此性能显著提升。在不需要 Named 参数灵活性的场景下，推荐使用原生占位符。
+
+### 数据库占位符格式
+
+不同的数据库使用不同的原生占位符格式，osm 会自动根据数据库类型生成正确的占位符：
+
+| 数据库 | 占位符格式 | 示例 | 驱动名称 |
+|--------|-----------|------|---------|
+| MySQL | `?` | `SELECT * FROM users WHERE id = ?` | `mysql` |
+| SQLite | `?` | `SELECT * FROM users WHERE id = ?` | `sqlite3` |
+| PostgreSQL | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `postgres` |
+| SQL Server | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `mssql` |
+| Oracle | `:1`, `:2` | `SELECT * FROM users WHERE id = :1` | `oracle`, `godror` |
+| TiDB | `?` | `SELECT * FROM users WHERE id = ?` | `mysql` (兼容) |
+| CockroachDB | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `postgres` (兼容) |
+| ClickHouse | `$1`, `$2` | `SELECT * FROM users WHERE id = $1` | `clickhouse` |
+
+**使用 Named 参数时无需关心占位符格式**：
+
+当使用 `#{ParamName}` 语法时，osm 会自动根据数据库类型转换为正确的占位符格式，你无需关心底层数据库的差异。
+
+```go
+// 这段代码在所有数据库上都能正常工作
+var users []User
+_, err := o.Select("SELECT * FROM users WHERE id = #{Id}", 1).Structs(&users)
+
+// osm 会自动转换为各数据库的占位符格式：
+// MySQL/SQLite/TiDB:   SELECT * FROM users WHERE id = ?
+// PostgreSQL/CockroachDB/ClickHouse/MSSQL: SELECT * FROM users WHERE id = $1
+// Oracle:              SELECT * FROM users WHERE id = :1
+```
 
 ### 丰富的结果处理
 
