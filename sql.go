@@ -358,7 +358,8 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 		sql = sqlOrg
 		// 过滤掉 nil 参数
 		for _, p := range params {
-			if p != nil {
+			// p不能是nil, 也只可以是基本类型，不能是map、数组、结构体等复杂类型
+			if p != nil && isValueKind(reflect.TypeOf(p).Kind()) {
 				sqlParams = append(sqlParams, p)
 			}
 		}
