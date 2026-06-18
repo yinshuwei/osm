@@ -8,7 +8,7 @@ import (
 func TestDatabasePlaceholderFormats(t *testing.T) {
 	testCases := []struct {
 		name          string
-		dbType        int
+		dbType        dbType
 		sqlTemplate   string
 		params        interface{}
 		expectedSQL   string

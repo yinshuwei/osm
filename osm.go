@@ -14,15 +14,17 @@ import (
 	"time"
 )
 
+type dbType int
+
 const (
-	dbTypeMysql      = 0
-	dbTypePostgres   = 1
-	dbTypeMssql      = 2
-	dbTypeSqlite     = 3
-	dbTypeOracle     = 4
-	dbTypeTiDB       = 5
-	dbTypeCockroach  = 6
-	dbTypeClickHouse = 7
+	dbTypeMysql      dbType = iota
+	dbTypePostgres
+	dbTypeMssql
+	dbTypeSqlite
+	dbTypeOracle
+	dbTypeTiDB
+	dbTypeCockroach
+	dbTypeClickHouse
 )
 
 type dbRunner interface {
@@ -34,7 +36,7 @@ type dbRunner interface {
 
 type osmBase struct {
 	db      dbRunner
-	dbType  int
+	dbType  dbType
 	options *Options
 }
 
@@ -186,9 +188,9 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 	switch driverName {
 	case "mysql":
 		osm.dbType = dbTypeMysql
-	case "postgres":
+	case "postgres", "pgx":
 		osm.dbType = dbTypePostgres
-	case "mssql":
+	case "mssql", "sqlserver":
 		osm.dbType = dbTypeMssql
 	case "sqlite", "sqlite3":
 		osm.dbType = dbTypeSqlite
@@ -200,6 +202,8 @@ func New(driverName, dataSource string, options Options) (*Osm, error) {
 		osm.dbType = dbTypeCockroach
 	case "clickhouse":
 		osm.dbType = dbTypeClickHouse
+	case "duckdb":
+		osm.dbType = dbTypeSqlite
 	default:
 		osm.dbType = dbTypeMysql
 	}
