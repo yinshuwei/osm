@@ -1,1 +1,4 @@
 demo/
+coverage.txt
+bench.txt
+*.out

@@ -10,13 +10,15 @@ import (
 	"time"
 )
 
+type resultType int
+
 const (
-	resultTypeValue   = "value"   //查出的结果为单行,并存入不定长的变量上(...)
-	resultTypeValues  = "values"  //查出的结果为多行,并存入不定长的变量上(...，每个都为array)
-	resultTypeStruct  = "struct"  //查出的结果为单行,并存入struct
-	resultTypeStructs = "structs" //查出的结果为多行,并存入struct array
-	resultTypeKvs     = "kvs"     //查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
-	resultTypeStrings = "strings" //查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
+	resultTypeValue   resultType = iota // 查出的结果为单行,并存入不定长的变量上(...)
+	resultTypeValues                    // 查出的结果为多行,并存入不定长的变量上(...，每个都为array)
+	resultTypeStruct                    // 查出的结果为单行,并存入struct
+	resultTypeStructs                   // 查出的结果为多行,并存入struct array
+	resultTypeKvs                       // 查出的结果为多行,每行有两个字段,前者为key,后者为value,存入map (双列)
+	resultTypeStrings                   // 查出的结果为多行,并存入columns，和datas。columns为[]string，datas为[][]string
 )
 
 // replaceSQLPlaceholders 根据配置的SQLReplacements替换SQL中的占位符
@@ -294,7 +296,7 @@ func (o *osmBase) SelectStrings(sql string, params ...interface{}) func(containe
 	return o.selectBySQL(getCallerInfo(2), sql, resultTypeStrings, params)
 }
 
-func (o *osmBase) selectBySQL(logPrefix, sql, resultType string, params []interface{}) func(containers ...interface{}) (int64, error) {
+func (o *osmBase) selectBySQL(logPrefix, sql string, rt resultType, params []interface{}) func(containers ...interface{}) (int64, error) {
 	defer o.slowLogDefer(logPrefix, sql, time.Now())()
 
 	sql, sqlParams, err := o.readSQLParamsBySQL(logPrefix, sql, params...)
@@ -305,44 +307,40 @@ func (o *osmBase) selectBySQL(logPrefix, sql, resultType string, params []interf
 		}
 	}
 	callback := func(containers ...interface{}) (int64, error) {
-		var err error
-		switch resultType {
+		switch rt {
 		case resultTypeStructs:
 			if len(containers) == 1 {
 				return resultStructs(logPrefix, o, sql, sql, sqlParams, containers[0])
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeStructs ,len(containers) != 1", sql)
+			return 0, fmt.Errorf("sql '%s' error : resultTypeStructs requires 1 container, got %d", sql, len(containers))
 		case resultTypeStruct:
 			if len(containers) == 1 {
 				return resultStruct(logPrefix, o, sql, sql, sqlParams, containers[0])
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeStruct ,len(containers) != 1", sql)
+			return 0, fmt.Errorf("sql '%s' error : resultTypeStruct requires 1 container, got %d", sql, len(containers))
 		case resultTypeValue:
 			if len(containers) > 0 {
 				return resultValue(logPrefix, o, sql, sql, sqlParams, containers)
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeValue ,len(containers) < 1", sql)
+			return 0, fmt.Errorf("sql '%s' error : resultTypeValue requires at least 1 container, got 0", sql)
 		case resultTypeValues:
 			if len(containers) > 0 {
 				return resultValues(logPrefix, o, sql, sql, sqlParams, containers)
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeValues ,len(containers) < 1", sql)
+			return 0, fmt.Errorf("sql '%s' error : resultTypeValues requires at least 1 container, got 0", sql)
 		case resultTypeKvs:
 			if len(containers) == 1 {
 				return resultKvs(logPrefix, o, sql, sql, sqlParams, containers[0])
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeKvs ,len(containers) != 1", sql)
+			return 0, fmt.Errorf("sql '%s' error : resultTypeKvs requires 1 container, got %d", sql, len(containers))
 		case resultTypeStrings:
 			if len(containers) == 2 {
 				return resultStrings(logPrefix, o, sql, sql, sqlParams, containers[0], containers[1])
 			}
-			err = fmt.Errorf("sql '%s' error : resultTypeStrings ,len(containers) != 2", sql)
+			return 0, fmt.Errorf("sql '%s' error : resultTypeStrings requires 2 containers, got %d", sql, len(containers))
+		default:
+			return 0, fmt.Errorf("sql '%s' error : unknown result type %d", sql, rt)
 		}
-
-		if err == nil {
-			err = fmt.Errorf("sql '%s' error : sql resultTypeType no in ['value','struct','values','structs','kvs']", sql)
-		}
-		return 0, err
 	}
 	return callback
 }
