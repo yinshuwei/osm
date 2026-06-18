@@ -68,8 +68,8 @@ func (o *osmBase) convertAssign(logPrefix string, dest reflect.Value, src interf
 		src = s.Local()
 	case nil:
 		if destIsPtr {
-			dest.Set(reflect.New(destType))
-		} else {
+		dest.Set(reflect.New(destType.Elem()))
+	} else {
 			dest.Set(reflect.New(destType).Elem())
 		}
 		return nil

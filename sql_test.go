@@ -2,6 +2,7 @@ package osm
 
 import (
 	"testing"
+	"time"
 )
 
 func TestReadSQLParamsBySQL(t *testing.T) {
@@ -444,6 +445,228 @@ func TestNativeSQLRejectsComplexTypes(t *testing.T) {
 	_, _, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = ?", struct{ X int }{1})
 	if err == nil {
 		t.Error("expected error for struct param in native mode")
+	}
+}
+
+func TestReadSQLParamsBySQL_ErrorCases(t *testing.T) {
+	o := &osmBase{options: &Options{}}
+
+	t.Run("unclosed #{ returns error", func(t *testing.T) {
+		_, _, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = #{id", 1)
+		if err == nil {
+			t.Fatal("expected error for unclosed #{")
+		}
+	})
+
+	t.Run("nil param", func(t *testing.T) {
+		sql, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = #{id}", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sql != "SELECT * FROM t WHERE id = ?" {
+			t.Errorf("got %q", sql)
+		}
+		if len(params) != 1 || params[0] != nil {
+			t.Error("expected single nil param")
+		}
+	})
+
+	t.Run("params list with IN", func(t *testing.T) {
+		sql, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id IN #{ids} AND name = #{name}", []int{1, 2}, "John")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sql != "SELECT * FROM t WHERE id IN (?,?) AND name = ?" {
+			t.Errorf("got %q", sql)
+		}
+		if len(params) != 3 || params[0] != 1 || params[1] != 2 || params[2] != "John" {
+			t.Errorf("got %v", params)
+		}
+	})
+
+	t.Run("map with missing key", func(t *testing.T) {
+		_, _, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = #{missing}", map[string]interface{}{"name": "John"})
+		if err == nil {
+			t.Fatal("expected error for missing map key")
+		}
+	})
+
+	t.Run("struct with missing field", func(t *testing.T) {
+		type S struct{ Name string }
+		_, _, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = #{MissingField}", S{Name: "John"})
+		if err == nil {
+			t.Fatal("expected error for missing struct field")
+		}
+	})
+
+	t.Run("no params in named mode", func(t *testing.T) {
+		sql, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = #{id}")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sql != "SELECT * FROM t WHERE id = #{id}" {
+			t.Errorf("got %q, expected unmodified sql with no params", sql)
+		}
+		if params != nil {
+			t.Errorf("expected nil params, got %v", params)
+		}
+	})
+
+	t.Run("time.Time param via map", func(t *testing.T) {
+		now := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
+		_, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE created = #{time}", map[string]interface{}{"time": now})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(params) != 1 {
+			t.Fatalf("expected 1 param, got %d", len(params))
+		}
+		// time.Time values from map params are passed as-is to the driver
+		if _, ok := params[0].(time.Time); !ok {
+			t.Errorf("expected time.Time, got %T", params[0])
+		}
+	})
+
+	t.Run("time[] param with IN", func(t *testing.T) {
+		now := time.Date(2024, 6, 15, 10, 30, 0, 0, time.UTC)
+		times := []time.Time{now, now.Add(24 * time.Hour)}
+		_, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE dates IN #{dates}", map[string]interface{}{"dates": times})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(params) != 2 {
+			t.Fatalf("expected 2 params, got %d", len(params))
+		}
+	})
+
+	t.Run("struct with db tag", func(t *testing.T) {
+		type S struct {
+			UserID int    `db:"user_id"`
+			Name   string `db:"name"`
+		}
+		sql, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = #{user_id} AND name = #{name}", S{UserID: 1, Name: "Alice"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sql != "SELECT * FROM t WHERE id = ? AND name = ?" {
+			t.Errorf("got %q", sql)
+		}
+		if len(params) != 2 || params[0] != 1 || params[1] != "Alice" {
+			t.Errorf("got %v", params)
+		}
+	})
+
+	t.Run("scalar value as single param", func(t *testing.T) {
+		sql, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = #{id}", 42)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sql != "SELECT * FROM t WHERE id = ?" {
+			t.Errorf("got %q", sql)
+		}
+		if len(params) != 1 || params[0] != 42 {
+			t.Errorf("got %v", params)
+		}
+	})
+
+	t.Run("native mode nil param", func(t *testing.T) {
+		_, params, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = ?", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(params) != 1 || params[0] != nil {
+			t.Errorf("got %v", params)
+		}
+	})
+
+	t.Run("native mode slice param", func(t *testing.T) {
+		_, _, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = ?", []int{1, 2})
+		if err == nil {
+			t.Fatal("expected error for slice param in native mode")
+		}
+	})
+
+	t.Run("native mode map param", func(t *testing.T) {
+		_, _, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = ?", map[string]interface{}{"a": 1})
+		if err == nil {
+			t.Fatal("expected error for map param in native mode")
+		}
+	})
+}
+
+func TestReadSQLParamsBySQL_DBTypes(t *testing.T) {
+	tests := []struct {
+		name         string
+		dbType       dbType
+		sql          string
+		params       []interface{}
+		wantSQL      string
+		wantParamCnt int
+	}{
+		{
+			name:         "mysql",
+			dbType:       dbTypeMysql,
+			sql:          "SELECT * FROM t WHERE a = #{a} AND b = #{b}",
+			params:       []interface{}{1, "x"},
+			wantSQL:      "SELECT * FROM t WHERE a = ? AND b = ?",
+			wantParamCnt: 2,
+		},
+		{
+			name:         "postgres",
+			dbType:       dbTypePostgres,
+			sql:          "SELECT * FROM t WHERE a = #{a} AND b = #{b}",
+			params:       []interface{}{1, "x"},
+			wantSQL:      "SELECT * FROM t WHERE a = $1 AND b = $2",
+			wantParamCnt: 2,
+		},
+		{
+			name:         "mssql",
+			dbType:       dbTypeMssql,
+			sql:          "SELECT * FROM t WHERE a = #{a} AND b = #{b}",
+			params:       []interface{}{1, "x"},
+			wantSQL:      "SELECT * FROM t WHERE a = $1 AND b = $2",
+			wantParamCnt: 2,
+		},
+		{
+			name:         "oracle",
+			dbType:       dbTypeOracle,
+			sql:          "SELECT * FROM t WHERE a = #{a} AND b = #{b}",
+			params:       []interface{}{1, "x"},
+			wantSQL:      "SELECT * FROM t WHERE a = :1 AND b = :2",
+			wantParamCnt: 2,
+		},
+		{
+			name:         "sqlite",
+			dbType:       dbTypeSqlite,
+			sql:          "SELECT * FROM t WHERE a = #{a} AND b = #{b}",
+			params:       []interface{}{1, "x"},
+			wantSQL:      "SELECT * FROM t WHERE a = ? AND b = ?",
+			wantParamCnt: 2,
+		},
+		{
+			name:         "tidb",
+			dbType:       dbTypeTiDB,
+			sql:          "SELECT * FROM t WHERE a = #{a} AND b = #{b}",
+			params:       []interface{}{1, "x"},
+			wantSQL:      "SELECT * FROM t WHERE a = ? AND b = ?",
+			wantParamCnt: 2,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			o := &osmBase{dbType: tc.dbType, options: &Options{}}
+			gotSQL, gotParams, err := o.readSQLParamsBySQL("test", tc.sql, tc.params...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if gotSQL != tc.wantSQL {
+				t.Errorf("SQL:\n  got:  %s\n  want: %s", gotSQL, tc.wantSQL)
+			}
+			if len(gotParams) != tc.wantParamCnt {
+				t.Errorf("param count: got %d, want %d", len(gotParams), tc.wantParamCnt)
+			}
+		})
 	}
 }
 
