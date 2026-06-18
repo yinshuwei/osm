@@ -302,7 +302,7 @@ func (o *osmBase) selectBySQL(logPrefix, sql string, rt resultType, params []int
 	sql, sqlParams, err := o.readSQLParamsBySQL(logPrefix, sql, params...)
 
 	if err != nil {
-		return func(containers ...interface{}) (int64, error) {
+		return func(_ ...interface{}) (int64, error) {
 			return 0, err
 		}
 	}
@@ -345,7 +345,7 @@ func (o *osmBase) selectBySQL(logPrefix, sql string, rt resultType, params []int
 	return callback
 }
 
-func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...interface{}) (sql string, sqlParams []interface{}, err error) {
+func (o *osmBase) readSQLParamsBySQL(logPrefix, sqlOrg string, params ...interface{}) (sql string, sqlParams []interface{}, err error) {
 	// 先替换SQL占位符
 	sqlOrg = o.replaceSQLPlaceholders(sqlOrg)
 
@@ -355,11 +355,12 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 	if !strings.Contains(sqlOrg, "#{") {
 		sql = sqlOrg
 		for _, p := range params {
-			if p == nil {
+			switch {
+			case p == nil:
 				sqlParams = append(sqlParams, p)
-			} else if isNativeParamType(reflect.TypeOf(p).Kind()) {
+			case isNativeParamType(reflect.TypeOf(p).Kind()):
 				sqlParams = append(sqlParams, p)
-			} else {
+			default:
 				err = fmt.Errorf("sql '%s' error : native placeholder mode does not support param type %T, use #{name} for named binding", sqlOrg, p)
 				return
 			}
@@ -371,9 +372,9 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 			} else if len(sqlParams) > 1 {
 				param = sqlParams
 			}
-			paramsJson, _ := json.Marshal(param)
-			sqlParamsJson, _ := json.Marshal(sqlParams)
-			o.options.InfoLogger.Log(logPrefix+"readSQLParamsBySQL showSql (native)", map[string]string{"sql": sqlOrg, "params": string(paramsJson), "dbSql": sql, "dbParams": string(sqlParamsJson)})
+			paramsJSON, _ := json.Marshal(param)
+			sqlParamsJSON, _ := json.Marshal(sqlParams)
+			o.options.InfoLogger.Log(logPrefix+"readSQLParamsBySQL showSql (native)", map[string]string{"sql": sqlOrg, "params": string(paramsJSON), "dbSql": sql, "dbParams": string(sqlParamsJSON)})
 		}
 		return
 	}
@@ -387,7 +388,7 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 			param = params
 		}
 
-		//sql start
+		// sql start
 		sqls := []*sqlFragment{}
 		paramNames := []*sqlFragment{}
 		if o.options.ShowSQL {
@@ -427,7 +428,7 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 		sqls = append(sqls, &sqlFragment{
 			content: sqlTemp,
 		})
-		//sql end
+		// sql end
 
 		v := reflect.ValueOf(param)
 
@@ -560,6 +561,6 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 }
 
 func markSQLError(sql string, index int) error {
-	result := strings.Join([]string{sql[0:index], "[****ERROR****]->", sql[index:]}, "")
+	result := sql[0:index] + "[****ERROR****]->" + sql[index:]
 	return errors.New(result)
 }

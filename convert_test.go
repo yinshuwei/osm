@@ -74,7 +74,7 @@ func TestSetValue(t *testing.T) {
 	})
 
 	t.Run("ptr", func(t *testing.T) {
-		dest := reflect.New(reflect.PtrTo(strType)).Elem()
+		dest := reflect.New(reflect.PointerTo(strType)).Elem()
 		setValue(true, dest, "hello", strType)
 		if dest.Elem().String() != "hello" {
 			t.Errorf("got %v, want hello", dest.Elem().String())
@@ -186,7 +186,7 @@ func TestConvertAssign(t *testing.T) {
 
 	t.Run("nil to ptr", func(t *testing.T) {
 		strType := reflect.TypeOf("")
-		ptrType := reflect.PtrTo(strType)
+		ptrType := reflect.PointerTo(strType)
 		dest := reflect.New(ptrType).Elem()
 		err := o.convertAssign("test", dest, nil, true, ptrType)
 		if err != nil {

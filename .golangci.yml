@@ -16,7 +16,6 @@ linters:
     - misspell
     - unconvert
     - whitespace
-    - tenv
     - makezero
 
 linters-settings:
@@ -52,6 +51,9 @@ linters-settings:
       - performance
     disabled-checks:
       - whyNoLint
+      - unnamedResult
+      - commentedOutCode
+      - hugeParam
   misspell:
     locale: US
 

@@ -81,11 +81,11 @@ func toGoNames(name string) (string, string) {
 		} else {
 			if isFirst {
 				if d >= 'a' && d <= 'z' {
-					d = d - 32
+					d -= 32
 				}
 			} else {
 				if d >= 'A' && d <= 'Z' {
-					d = d + 32
+					d += 32
 				}
 			}
 			data[point] = d
@@ -217,7 +217,7 @@ type structFieldInfo struct {
 	isPtr bool
 }
 
-func getStructFieldMap(t reflect.Type, tagMap map[string]*structFieldInfo, nameMap map[string]*structFieldInfo, isAnonymous bool) {
+func getStructFieldMap(t reflect.Type, tagMap, nameMap map[string]*structFieldInfo, isAnonymous bool) {
 	for i := 0; i < t.NumField(); i++ {
 		t := t.Field(i)
 		if t.Anonymous && t.Type.Kind() == reflect.Struct {

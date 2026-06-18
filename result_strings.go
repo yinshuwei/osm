@@ -75,7 +75,7 @@ func resultStrings(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 			columnsCount = len(columns)
 			for _, column := range columns {
 				fields = append(fields, &structFieldInfo{0, "", &stringType, false, false})
-				(*columnsValue).Set(reflect.Append(*columnsValue, reflect.ValueOf(column)))
+				columnsValue.Set(reflect.Append(*columnsValue, reflect.ValueOf(column)))
 			}
 		}
 		objs := make([]reflect.Value, columnsCount)
@@ -90,7 +90,7 @@ func resultStrings(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 		for i := 0; i < columnsCount; i++ {
 			data = append(data, objs[i].String())
 		}
-		(*datasValue).Set(reflect.Append(*datasValue, reflect.ValueOf(data)))
+		datasValue.Set(reflect.Append(*datasValue, reflect.ValueOf(data)))
 		rowsCount++
 	}
 

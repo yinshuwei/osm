@@ -67,7 +67,10 @@ func TestReadSQLParamsBySQL(t *testing.T) {
 		{
 			name:       "IN with struct field",
 			sql:        "SELECT * FROM table WHERE id IN #{Ids} AND name = #{Name}",
-			params:     []interface{}{struct{ Ids []int; Name string }{Ids: []int{1, 2, 3}, Name: "John"}},
+			params:     []interface{}{struct {
+				IDs  []int `db:"Ids"`
+				Name string
+			}{IDs: []int{1, 2, 3}, Name: "John"}},
 			wantSQL:    "SELECT * FROM table WHERE id IN (?,?,?) AND name = ?",
 			wantParams: []interface{}{1, 2, 3, "John"},
 		},
@@ -301,7 +304,7 @@ func BenchmarkReadSQLParamsBySQL(b *testing.B) {
 	 FROM users WHERE id IN (#{ids}) AND name = #{name} AND age = #{age} AND status = #{status} AND address = #{address};`
 
 	type Person struct {
-		Ids     []int  `db:"ids"`
+		IDs     []int  `db:"ids"`
 		Name    string `db:"name"`
 		Age     int    `db:"age"`
 		Status  string `db:"status"`
@@ -311,7 +314,7 @@ func BenchmarkReadSQLParamsBySQL(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = o.readSQLParamsBySQL("Bench", sqlOrg, Person{
-			Ids: []int{1, 2, 3}, Name: "John", Age: 30, Status: "active", Address: "123 Main St",
+			IDs: []int{1, 2, 3}, Name: "John", Age: 30, Status: "active", Address: "123 Main St",
 		})
 	}
 }
@@ -324,14 +327,14 @@ func BenchmarkReadSQLParamsVariants(b *testing.B) {
 
 	b.Run("struct_IN_3", func(b *testing.B) {
 		type P struct {
-			Ids     []int  `db:"ids"`
+			IDs     []int  `db:"ids"`
 			Name    string `db:"name"`
 			Age     int    `db:"age"`
 			Status  string `db:"status"`
 			Address string `db:"address"`
 		}
 		sql := `SELECT id, name FROM users WHERE id IN #{ids} AND name=#{name} AND age=#{age} AND status=#{status} AND address=#{address}`
-		p := P{Ids: []int{1, 2, 3}, Name: "John", Age: 30, Status: "active", Address: "Main"}
+		p := P{IDs: []int{1, 2, 3}, Name: "John", Age: 30, Status: "active", Address: "Main"}
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, _, _ = o.readSQLParamsBySQL(logPrefix, sql, p)

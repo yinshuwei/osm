@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func resultValue(logPrefix string, o *osmBase, id, sql string, sqlParams []interface{}, containers []interface{}) (int64, error) {
+func resultValue(logPrefix string, o *osmBase, id, sql string, sqlParams, containers []interface{}) (int64, error) {
 	lenContainers := len(containers)
 	values := make([]reflect.Value, lenContainers)
 	fields := make([]*structFieldInfo, lenContainers)
