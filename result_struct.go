@@ -25,41 +25,44 @@ func resultStruct(logPrefix string, o *osmBase, id, sql string, sqlParams []inte
 		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
 	}
 	defer rows.Close()
-	if rows.Next() {
-		columns, err := rows.Columns()
-		if err != nil {
-			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
-		}
-		columnsCount := len(columns)
-		fields := make([]*structFieldInfo, columnsCount) // struct成员的名字，与sql中的列对应
-		values := make([]reflect.Value, columnsCount)
 
-		structType := valueElem.Type()
-		tagMap := make(map[string]*structFieldInfo)
-		nameMap := make(map[string]*structFieldInfo)
-		getStructFieldMap(structType, tagMap, nameMap, false)
+	if !rows.Next() {
+		return 0, nil
+	}
 
-		for i, col := range columns {
-			field := findFiled(tagMap, nameMap, col)
-			fields[i] = field
-			if field != nil {
-				if field.a {
-					values[i] = valueElem.FieldByName(field.n)
-				} else {
-					values[i] = valueElem.Field(field.i)
-				}
+	columns, err := rows.Columns()
+	if err != nil {
+		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
+	}
+	columnsCount := len(columns)
+	fields := make([]*structFieldInfo, columnsCount)
+	values := make([]reflect.Value, columnsCount)
+
+	structType := valueElem.Type()
+	tagMap := make(map[string]*structFieldInfo)
+	nameMap := make(map[string]*structFieldInfo)
+	getStructFieldMap(structType, tagMap, nameMap, false)
+
+	for i, col := range columns {
+		field := findField(tagMap, nameMap, col)
+		fields[i] = field
+		if field != nil {
+			if field.a {
+				values[i] = valueElem.FieldByName(field.n)
 			} else {
-				a := ""
-				values[i] = reflect.ValueOf(&a).Elem()
+				values[i] = valueElem.Field(field.i)
 			}
+		} else {
+			a := ""
+			values[i] = reflect.ValueOf(&a).Elem()
 		}
-		err = o.scanRow(logPrefix, rows, fields, values)
-		if err != nil {
-			return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
-		}
-		if isStructPtr {
-			value.Set(valueElem.Addr())
-		}
+	}
+	err = o.scanRow(logPrefix, rows, fields, values)
+	if err != nil {
+		return 0, fmt.Errorf("sql '%s' error : %s", id, err.Error())
+	}
+	if isStructPtr {
+		value.Set(valueElem.Addr())
 	}
 
 	return 1, nil

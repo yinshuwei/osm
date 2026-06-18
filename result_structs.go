@@ -61,7 +61,7 @@ func resultStructs(logPrefix string, o *osmBase, id, sql string, sqlParams []int
 			fields = make([]*structFieldInfo, columnsCount)
 			// 计算
 			for i, col := range columns {
-				fields[i] = findFiled(tagMap, nameMap, col)
+				fields[i] = findField(tagMap, nameMap, col)
 			}
 		}
 		// 通过fieldName,创建struct实列的成员实例切片

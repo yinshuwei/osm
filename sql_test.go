@@ -77,6 +77,13 @@ func TestReadSQLParamsBySQL(t *testing.T) {
 			wantSQL:    "SELECT *,'{' as a, '}' as b FROM table WHERE id IN (?,?,?) AND name = ?",
 			wantParams: []interface{}{1, 2, 3, "John"},
 		},
+		{
+			name:       "IN with no space before #{ (still detected)",
+			sql:        "SELECT * FROM table WHERE id IN#{ids}",
+			params:     []interface{}{[]int{1, 2}},
+			wantSQL:    "SELECT * FROM table WHERE id IN(?,?)",
+			wantParams: []interface{}{1, 2},
+		},
 	}
 
 	for _, tc := range tests {
@@ -430,4 +437,42 @@ func BenchmarkNativeSQLPlaceholders(b *testing.B) {
 			_, _, _ = o.readSQLParamsBySQL("Bench", sqlNamed, params)
 		}
 	})
+}
+
+func TestNativeSQLRejectsComplexTypes(t *testing.T) {
+	o := &osmBase{options: &Options{}}
+	_, _, err := o.readSQLParamsBySQL("test", "SELECT * FROM t WHERE id = ?", struct{ X int }{1})
+	if err == nil {
+		t.Error("expected error for struct param in native mode")
+	}
+}
+
+func TestSQLIsIn(t *testing.T) {
+	// sqlIsIn 接收的是 #{ 之前的文本, 不包含 #{...} 部分
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{"WHERE id IN", true},
+		{"WHERE id IN ", true},
+		{"WHERE id IN(", true},
+		{"WHERE id IN (", true},
+		{"WHERE id IN  ", true},
+		{"WHERE id IN (", true},
+		{"WHERE id = ", false},
+		{"WHERE name = ", false},
+		{"", false},
+		{"IN", true},
+		{" xIN ", false},
+		{"INNER JOIN", false},
+	}
+
+	for _, tc := range tests {
+		t.Run("", func(t *testing.T) {
+			got := sqlIsIn(tc.input)
+			if got != tc.want {
+				t.Errorf("sqlIsIn(%q) = %v, want %v", tc.input, got, tc.want)
+			}
+		})
+	}
 }

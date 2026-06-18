@@ -103,7 +103,7 @@ func toGoNames(name string) (string, string) {
 	return string(data[:point]), string(dataSpecial[:point])
 }
 
-func findFiled(tagMap, nameMap map[string]*structFieldInfo, name string) *structFieldInfo {
+func findField(tagMap, nameMap map[string]*structFieldInfo, name string) *structFieldInfo {
 	v, ok := tagMap[name]
 	if ok {
 		return v
@@ -160,9 +160,31 @@ func (o *osmBase) scanRow(
 		if field == nil {
 			continue
 		}
-		o.convertAssign(logPrefix, values[i], *src, field.isPtr, types[i])
+		if err := o.convertAssign(logPrefix, values[i], *src, field.isPtr, types[i]); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func isNativeParamType(kind reflect.Kind) bool {
+	return kind == reflect.Bool ||
+		kind == reflect.Int ||
+		kind == reflect.Int8 ||
+		kind == reflect.Int16 ||
+		kind == reflect.Int32 ||
+		kind == reflect.Int64 ||
+		kind == reflect.Uint ||
+		kind == reflect.Uint8 ||
+		kind == reflect.Uint16 ||
+		kind == reflect.Uint32 ||
+		kind == reflect.Uint64 ||
+		kind == reflect.Uintptr ||
+		kind == reflect.Float32 ||
+		kind == reflect.Float64 ||
+		kind == reflect.Complex64 ||
+		kind == reflect.Complex128 ||
+		kind == reflect.String
 }
 
 func isValueKind(kind reflect.Kind) bool {

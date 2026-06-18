@@ -354,11 +354,14 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 	// 原生占位符模式，直接使用传入的参数，不进行Named参数解析
 	if !strings.Contains(sqlOrg, "#{") {
 		sql = sqlOrg
-		// 过滤掉 nil 参数
 		for _, p := range params {
-			// p不能是nil, 也只可以是基本类型，不能是map、数组、结构体等复杂类型
-			if p != nil && isValueKind(reflect.TypeOf(p).Kind()) {
+			if p == nil {
 				sqlParams = append(sqlParams, p)
+			} else if isNativeParamType(reflect.TypeOf(p).Kind()) {
+				sqlParams = append(sqlParams, p)
+			} else {
+				err = fmt.Errorf("sql '%s' error : native placeholder mode does not support param type %T, use #{name} for named binding", sqlOrg, p)
+				return
 			}
 		}
 		if o.options.ShowSQL {
@@ -387,13 +390,13 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 		//sql start
 		sqls := []*sqlFragment{}
 		paramNames := []*sqlFragment{}
-		defer func() {
-			if o.options.ShowSQL {
+		if o.options.ShowSQL {
+			defer func() {
 				params, _ := json.Marshal(param)
 				sqlParams, _ := json.Marshal(sqlParams)
 				o.options.InfoLogger.Log(logPrefix+"readSQLParamsBySQL showSql", map[string]string{"sql": sqlOrg, "params": string(params), "dbSql": sql, "dbParams": string(sqlParams)})
-			}
-		}()
+			}()
+		}
 		sqlTemp := sqlOrg
 		errorIndex := 0
 		for strings.Contains(sqlTemp, "#{") {
@@ -417,7 +420,7 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix string, sqlOrg string, params ...
 				sqlTemp = sqlTemp[ei+1:]
 				errorIndex += ei + 1
 			} else {
-				o.options.ErrorLogger.Log(logPrefix+"sql read error", map[string]string{"error": markSQLError(sqlOrg, errorIndex).Error()})
+				err = markSQLError(sqlOrg, errorIndex)
 				return
 			}
 		}

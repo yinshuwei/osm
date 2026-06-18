@@ -398,11 +398,28 @@ func setDataToParamName(paramName *sqlFragment, v reflect.Value) {
 
 func sqlIsIn(lastSQLText string) bool {
 	lastSQLText = strings.TrimSpace(lastSQLText)
-	lenLastSQLText := len(lastSQLText)
-	if lenLastSQLText > 3 {
-		return strings.EqualFold(lastSQLText[lenLastSQLText-3:], " IN")
+	// 从末尾去除非字母字符（如 (、空格等），提取最后一个单词
+	end := len(lastSQLText)
+	for end > 0 {
+		c := lastSQLText[end-1]
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+			break
+		}
+		end--
 	}
-	return false
+	start := end
+	for start > 0 {
+		c := lastSQLText[start-1]
+		if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' {
+			start--
+			continue
+		}
+		break
+	}
+	if start >= end {
+		return false
+	}
+	return strings.EqualFold(lastSQLText[start:end], "IN")
 }
 
 // getCallerInfo 获取调用者信息，用于日志记录

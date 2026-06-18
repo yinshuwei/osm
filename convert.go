@@ -121,6 +121,7 @@ func (o *osmBase) convertAssign(logPrefix string, dest reflect.Value, src interf
 		i64, err := strconv.ParseInt(s, 10, destType.Bits())
 		if err != nil {
 			o.options.WarnLogger.Log(logPrefix+"convertAssign Int error", map[string]string{"error": err.Error()})
+			return err
 		}
 		dest.SetInt(i64)
 		return nil
@@ -130,6 +131,7 @@ func (o *osmBase) convertAssign(logPrefix string, dest reflect.Value, src interf
 		u64, err := strconv.ParseUint(s, 10, destType.Bits())
 		if err != nil {
 			o.options.WarnLogger.Log(logPrefix+"convertAssign Uint error", map[string]string{"error": err.Error()})
+			return err
 		}
 		dest.SetUint(u64)
 		return nil
@@ -138,6 +140,7 @@ func (o *osmBase) convertAssign(logPrefix string, dest reflect.Value, src interf
 		f64, err := strconv.ParseFloat(s, destType.Bits())
 		if err != nil {
 			o.options.WarnLogger.Log(logPrefix+"convertAssign Float error", map[string]string{"error": err.Error()})
+			return err
 		}
 		dest.SetFloat(f64)
 		return nil
