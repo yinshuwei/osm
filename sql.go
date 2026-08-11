@@ -354,6 +354,9 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix, sqlOrg string, params ...interfa
 	// 原生占位符模式，直接使用传入的参数，不进行Named参数解析
 	if !strings.Contains(sqlOrg, "#{") {
 		sql = sqlOrg
+		// 原生SQL中没有占位符（? 或 $1 等）时，非原生类型的参数（map/slice/struct等）
+		// 不会被SQL引用，直接忽略，避免被误传给数据库驱动而报错
+		noPlaceholder := !hasNativePlaceholder(sqlOrg, o.dbType)
 		for _, p := range params {
 			switch {
 			case p == nil:
@@ -361,6 +364,9 @@ func (o *osmBase) readSQLParamsBySQL(logPrefix, sqlOrg string, params ...interfa
 			case isNativeParamType(reflect.TypeOf(p).Kind()):
 				sqlParams = append(sqlParams, p)
 			default:
+				if noPlaceholder {
+					continue
+				}
 				err = fmt.Errorf("sql '%s' error : native placeholder mode does not support param type %T, use #{name} for named binding", sqlOrg, p)
 				return
 			}

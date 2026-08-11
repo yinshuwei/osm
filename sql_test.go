@@ -595,6 +595,46 @@ func TestReadSQLParamsBySQL_ErrorCases(t *testing.T) {
 			t.Fatal("expected error for map param in native mode")
 		}
 	})
+
+	t.Run("native mode no placeholder ignores map param", func(t *testing.T) {
+		sql := "SELECT rn FROM goods_search_spu, unnest(real_name) AS rn WHERE active = true AND (1=1) LIMIT 30"
+		gotSQL, gotParams, err := o.readSQLParamsBySQL("test", sql, map[string]interface{}{"a": 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if gotSQL != sql {
+			t.Errorf("got %q", gotSQL)
+		}
+		if gotParams != nil {
+			t.Errorf("expected nil params, got %v", gotParams)
+		}
+	})
+
+	t.Run("native mode no placeholder keeps scalar params", func(t *testing.T) {
+		gotSQL, gotParams, err := o.readSQLParamsBySQL("test", "SELECT 1", 1, "John")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if gotSQL != "SELECT 1" {
+			t.Errorf("got %q", gotSQL)
+		}
+		if len(gotParams) != 2 || gotParams[0] != 1 || gotParams[1] != "John" {
+			t.Errorf("got %v", gotParams)
+		}
+	})
+
+	t.Run("native mode no placeholder ignores map but keeps scalars", func(t *testing.T) {
+		gotSQL, gotParams, err := o.readSQLParamsBySQL("test", "SELECT 1", 1, map[string]interface{}{"a": 2})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if gotSQL != "SELECT 1" {
+			t.Errorf("got %q", gotSQL)
+		}
+		if len(gotParams) != 1 || gotParams[0] != 1 {
+			t.Errorf("got %v", gotParams)
+		}
+	})
 }
 
 func TestReadSQLParamsBySQL_DBTypes(t *testing.T) {

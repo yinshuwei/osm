@@ -3,6 +3,7 @@ package osm
 import (
 	"database/sql"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -165,6 +166,29 @@ func (o *osmBase) scanRow(
 		}
 	}
 	return nil
+}
+
+// hasNativePlaceholder 根据数据库类型判断原生SQL中是否包含对应风格的占位符
+// MySQL/SQLite/TiDB为?，Oracle为:N，其余（PostgreSQL/MSSQL/CockroachDB/ClickHouse）为$N
+func hasNativePlaceholder(sql string, t dbType) bool {
+	switch t {
+	case dbTypeMysql, dbTypeSqlite, dbTypeTiDB:
+		return strings.Contains(sql, "?")
+	case dbTypeOracle:
+		return hasBindPlaceholder(sql, ':')
+	default:
+		return hasBindPlaceholder(sql, '$')
+	}
+}
+
+// hasBindPlaceholder 判断SQL中是否存在 marker 后紧跟数字的绑定变量（如 $1 或 :1）
+func hasBindPlaceholder(sql string, marker byte) bool {
+	for i := 0; i < len(sql)-1; i++ {
+		if sql[i] == marker && sql[i+1] >= '0' && sql[i+1] <= '9' {
+			return true
+		}
+	}
+	return false
 }
 
 func isNativeParamType(kind reflect.Kind) bool {
